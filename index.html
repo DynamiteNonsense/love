@@ -1,0 +1,2963 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Игры Великих Любовников — Курс-тренинг</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:#FAF6F0;}
+body{font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;}
+#root{height:100%;}
+textarea{box-sizing:border-box;font-family:'DM Sans',sans-serif;}
+button{font-family:'DM Sans',sans-serif;}
+*{text-wrap:pretty;}
+input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;cursor:pointer;}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:#EDE0D4;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:currentColor;margin-top:-7px;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:#EDE0D4;}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:currentColor;border:none;}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:3px;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.fade-up{animation:fadeUp .4s ease;}
+@media(max-width:768px){body{padding-top:56px;}.sidebar-wrap{display:none!important;}.mobile-bar{display:flex!important;}}
+@media(min-width:769px){.mobile-bar{display:none!important;}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- ═══════════════════════════════════════════════
+     SHARED UTILITIES
+════════════════════════════════════════════════ -->
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback,useMemo}=React;
+
+const OR_KEY='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';
+async function aiComplete(prompt){
+  try{
+    const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',
+      headers:{'Authorization':`Bearer ${OR_KEY}`,'Content-Type':'application/json','HTTP-Referer':window.location.href},
+      body:JSON.stringify({model:'x-ai/grok-4.1-fast',messages:[{role:'user',content:prompt}],max_tokens:600})
+    });
+    const d=await r.json();
+    return d.choices[0].message.content.trim();
+  }catch(e){return 'Не удалось получить ответ. Проверьте подключение к интернету.';}
+}
+
+const ALL_MODULES=[
+  {id:1,suit:'♥',title:'Игры Любви',sub:'Что такое фреймы и игры?',color:'#C05A3A'},
+  {id:2,suit:'♦',title:'Танец Романтики',sub:'Притяжение и состояние ума',color:'#C8842A'},
+  {id:3,suit:'♣',title:'Эмоциональный Банк',sub:'Вклады и снятия доверия',color:'#2D5240'},
+  {id:4,suit:'♠',title:'Самораскрытие',sub:'Путь к настоящей близости',color:'#5B3A7E'},
+  {id:5,suit:'♥',title:'Языки Любви',sub:'Стратегии признательности',color:'#B04060'},
+  {id:6,suit:'♦',title:'Искусство Общения',sub:'Речь и раппорт',color:'#8B6914'},
+  {id:7,suit:'♣',title:'Синхронизация',sub:'Мета-программы партнёров',color:'#1A5C50'},
+  {id:8,suit:'♠',title:'Осознанная Любовь',sub:'Проектирование будущего',color:'#3A4A7E'},
+  {id:9,suit:'♥',title:'Игра Удовольствия',sub:'Карта радости и мета-плежур',color:'#C03060'},
+  {id:10,suit:'♦',title:'Здоровый Конфликт',sub:'Правила честной борьбы',color:'#A04010'},
+  {id:11,suit:'♣',title:'Исцеление Любви',sub:'Пороги и прощение',color:'#2A5A3A'},
+  {id:12,suit:'♠',title:'Со-Творение',sub:'Взаимозависимость и слияние',color:'#4A2A6A'},
+];
+
+// Common layout helpers
+function Hero({num,suit,bg,color,title,sub}){
+  return(
+    <div style={{background:bg,borderRadius:20,padding:'52px 48px',marginBottom:40,position:'relative',overflow:'hidden'}}>
+      <div style={{position:'absolute',top:20,right:28,fontSize:80,opacity:.12,color,fontFamily:'serif',userSelect:'none'}}>{suit}</div>
+      <div style={{fontFamily:"'Playfair Display',serif",color,fontSize:13,letterSpacing:'0.18em',textTransform:'uppercase',marginBottom:12}}>Модуль {String(num).padStart(2,'0')}</div>
+      <div style={{fontFamily:"'Playfair Display',serif",color:'#F5EDE0',fontSize:'clamp(26px,4vw,38px)',fontWeight:700,lineHeight:1.15,marginBottom:12}} dangerouslySetInnerHTML={{__html:title}}/>
+      <div style={{color:'#A09080',fontSize:16,lineHeight:1.6,maxWidth:480}}>{sub}</div>
+    </div>
+  );
+}
+function Card({children,style={}}){
+  return <div style={{background:'#fff',borderRadius:16,padding:'32px 36px',marginBottom:24,boxShadow:'0 2px 16px rgba(44,24,16,.07)',...style}}>{children}</div>;
+}
+function CardTitle({children}){
+  return <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,color:'#2C1810',fontWeight:700,marginBottom:16}}>{children}</div>;
+}
+function Body({children,style={}}){
+  return <div style={{fontSize:15,lineHeight:1.75,color:'#5A4438',marginBottom:12,...style}}>{children}</div>;
+}
+function Insight({icon,text}){
+  return(
+    <div style={{display:'flex',gap:12,alignItems:'flex-start',marginBottom:14,padding:'14px 16px',background:'#FAF6F0',borderRadius:10}}>
+      <span style={{fontSize:18,flexShrink:0}}>{icon}</span>
+      <div style={{fontSize:14,color:'#5A4438',lineHeight:1.65}}>{text}</div>
+    </div>
+  );
+}
+function NextBtn({label,color,shadow,onClick}){
+  return(
+    <button onClick={onClick} style={{
+      display:'flex',alignItems:'center',justifyContent:'center',gap:10,
+      width:'100%',padding:16,borderRadius:12,border:'none',
+      background:color,color:'#fff',fontSize:16,fontWeight:600,cursor:'pointer',
+      marginTop:32,boxShadow:`0 4px 20px ${shadow||'rgba(0,0,0,.2)'}`,transition:'all .2s',
+    }}>{label}</button>
+  );
+}
+function Tag({children,color='#C05A3A',bg='#FAF0EB'}){
+  return <span style={{display:'inline-block',background:bg,color,borderRadius:6,padding:'3px 10px',fontSize:12,fontWeight:600,letterSpacing:'0.06em',marginRight:8,marginBottom:8}}>{children}</span>;
+}
+function Wrap({children}){
+  return <div style={{maxWidth:780,margin:'0 auto',padding:'48px 32px 80px'}} className="mod-wrap">{children}</div>;
+}
+
+Object.assign(window,{useState,useEffect,useRef,useCallback,useMemo,aiComplete,ALL_MODULES,Hero,Card,CardTitle,Body,Insight,NextBtn,Tag,Wrap});
+</script>
+
+<!-- ═══ MODULE 1 ═══════════════════════════════ -->
+<script type="text/babel">
+const M1_COLORS = {
+  accent: '#C05A3A',
+  accentLight: '#FAF0EB',
+  accentMid: '#E8A090',
+  gold: '#C8842A',
+  dark: '#2C1810',
+  mid: '#7A5C4A',
+  cream: '#FAF6F0',
+  card: '#FFFFFF',
+};
+
+const m1Styles = {
+  wrap: { maxWidth: 780, margin: '0 auto', padding: '48px 32px 80px' },
+  hero: {
+    background: 'linear-gradient(135deg, #2C1810 0%, #5A2A18 100%)',
+    borderRadius: 20,
+    padding: '52px 48px',
+    marginBottom: 40,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  heroSuit: {
+    position: 'absolute', top: 20, right: 28,
+    fontSize: 80, opacity: 0.12, color: '#C05A3A',
+    fontFamily: 'serif', lineHeight: 1,
+    userSelect: 'none',
+  },
+  heroNum: {
+    fontFamily: "'Playfair Display', serif",
+    color: '#C8842A',
+    fontSize: 13,
+    letterSpacing: '0.18em',
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+  heroTitle: {
+    fontFamily: "'Playfair Display', serif",
+    color: '#F5EDE0',
+    fontSize: 38,
+    fontWeight: 700,
+    lineHeight: 1.15,
+    marginBottom: 12,
+  },
+  heroSub: {
+    color: '#A08878',
+    fontSize: 16,
+    lineHeight: 1.6,
+    maxWidth: 480,
+  },
+  section: {
+    background: '#FFFFFF',
+    borderRadius: 16,
+    padding: '32px 36px',
+    marginBottom: 24,
+    boxShadow: '0 2px 16px rgba(44,24,16,0.07)',
+  },
+  sectionTitle: {
+    fontFamily: "'Playfair Display', serif",
+    fontSize: 22,
+    color: '#2C1810',
+    fontWeight: 700,
+    marginBottom: 16,
+  },
+  body: { fontSize: 15, lineHeight: 1.75, color: '#5A4438', marginBottom: 12 },
+  tag: {
+    display: 'inline-block',
+    background: '#FAF0EB',
+    color: '#C05A3A',
+    borderRadius: 6,
+    padding: '3px 10px',
+    fontSize: 12,
+    fontWeight: 600,
+    letterSpacing: '0.06em',
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  expand: {
+    background: 'none',
+    border: 'none',
+    color: '#C05A3A',
+    cursor: 'pointer',
+    fontSize: 13,
+    fontWeight: 600,
+    padding: '4px 0',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+  },
+  twoCol: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: 16,
+    marginTop: 16,
+  },
+  infoBox: {
+    borderRadius: 12,
+    padding: '18px 20px',
+    fontSize: 14,
+    lineHeight: 1.65,
+  },
+  // Game card styles
+  cardGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+    gap: 20,
+    marginTop: 20,
+  },
+  gameCard: {
+    background: '#FFFDF9',
+    border: '2px solid #EDE0D4',
+    borderRadius: 16,
+    padding: 24,
+    position: 'relative',
+    transition: 'all 0.25s',
+  },
+  gameCardActive: {
+    borderColor: '#C05A3A',
+    boxShadow: '0 4px 20px rgba(192,90,58,0.15)',
+  },
+  cardCorner: {
+    position: 'absolute',
+    top: 10,
+    right: 14,
+    fontFamily: "'Playfair Display', serif",
+    fontSize: 22,
+    color: '#C05A3A',
+    opacity: 0.6,
+  },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase',
+    color: '#A08878',
+    marginBottom: 5,
+  },
+  fieldInput: {
+    width: '100%',
+    border: 'none',
+    borderBottom: '1.5px solid #EDE0D4',
+    background: 'transparent',
+    padding: '5px 0',
+    fontSize: 14,
+    color: '#2C1810',
+    fontFamily: "'DM Sans', sans-serif",
+    outline: 'none',
+    transition: 'border-color 0.2s',
+    marginBottom: 14,
+  },
+  fieldTextarea: {
+    width: '100%',
+    border: '1.5px solid #EDE0D4',
+    borderRadius: 8,
+    background: 'transparent',
+    padding: '8px 10px',
+    fontSize: 13,
+    color: '#2C1810',
+    fontFamily: "'DM Sans', sans-serif",
+    outline: 'none',
+    resize: 'none',
+    lineHeight: 1.5,
+    marginBottom: 14,
+    transition: 'border-color 0.2s',
+  },
+  addBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    width: '100%',
+    padding: '14px',
+    borderRadius: 12,
+    border: '2px dashed #C8842A',
+    background: 'transparent',
+    color: '#C8842A',
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: "'DM Sans', sans-serif",
+    transition: 'all 0.2s',
+    marginTop: 20,
+  },
+  deleteBtn: {
+    position: 'absolute',
+    top: 10,
+    left: 12,
+    background: 'none',
+    border: 'none',
+    color: '#C8B0A0',
+    cursor: 'pointer',
+    fontSize: 14,
+    padding: 4,
+    lineHeight: 1,
+    transition: 'color 0.2s',
+  },
+  insightRow: {
+    display: 'flex',
+    gap: 12,
+    alignItems: 'flex-start',
+    marginBottom: 14,
+    padding: '14px 16px',
+    background: '#FAF6F0',
+    borderRadius: 10,
+  },
+  insightIcon: {
+    fontSize: 18,
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  insightText: {
+    fontSize: 14,
+    lineHeight: 1.65,
+    color: '#5A4438',
+  },
+  nextBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    width: '100%',
+    padding: '16px',
+    borderRadius: 12,
+    border: 'none',
+    background: 'linear-gradient(135deg, #C05A3A, #C8842A)',
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: "'DM Sans', sans-serif",
+    marginTop: 32,
+    boxShadow: '0 4px 20px rgba(192,90,58,0.3)',
+    transition: 'all 0.2s',
+  },
+};
+
+const EXAMPLE_GAMES = [
+  { name: 'Игра «Угадай мои мысли»', rules: 'Я не говорю о своих нуждах, ожидая что партнёр сам догадается', triggers: 'Партнёр не замечает моё настроение', payoff: 'Чувствую себя «непонятым», подтверждаю убеждение «никто не заботится»' },
+  { name: 'Игра «Критик»', rules: 'Замечаю только ошибки партнёра, редко хвалю', triggers: 'Что-то идёт не по плану', payoff: 'Ощущение контроля, но растущая дистанция' },
+];
+
+function GameCardWidget({ onDone }) {
+  const saved = (() => {
+    try { return JSON.parse(localStorage.getItem('ggl_m1_games') || 'null'); } catch { return null; }
+  })();
+  const [cards, setCards] = useState(saved || [
+    { id: 1, name: '', rules: '', triggers: '', payoff: '' }
+  ]);
+  const [activeCard, setActiveCard] = useState(1);
+
+  useEffect(() => {
+    localStorage.setItem('ggl_m1_games', JSON.stringify(cards));
+  }, [cards]);
+
+  const update = (id, field, value) => {
+    setCards(cs => cs.map(c => c.id === id ? { ...c, [field]: value } : c));
+  };
+
+  const addCard = () => {
+    if (cards.length >= 4) return;
+    const newId = Date.now();
+    setCards(cs => [...cs, { id: newId, name: '', rules: '', triggers: '', payoff: '' }]);
+    setActiveCard(newId);
+  };
+
+  const removeCard = (id) => {
+    if (cards.length <= 1) return;
+    setCards(cs => cs.filter(c => c.id !== id));
+  };
+
+  const filledCount = cards.filter(c => c.name && c.rules).length;
+
+  return (
+    <div>
+      <p style={{...m1Styles.body, marginBottom: 20}}>
+        Вспомните 1–3 паттерна поведения в отношениях, которые повторяются снова и снова. Это и есть ваши текущие «игры». Заполните карточки:
+      </p>
+      <div style={m1Styles.cardGrid}>
+        {cards.map((card, idx) => (
+          <div
+            key={card.id}
+            style={{
+              ...m1Styles.gameCard,
+              ...(activeCard === card.id ? m1Styles.gameCardActive : {}),
+            }}
+            onClick={() => setActiveCard(card.id)}
+          >
+            {cards.length > 1 && (
+              <button style={m1Styles.deleteBtn} onClick={e => { e.stopPropagation(); removeCard(card.id); }}>✕</button>
+            )}
+            <div style={m1Styles.cardCorner}>♥</div>
+            <div style={{marginBottom: 16, marginTop: 4}}>
+              <div style={m1Styles.fieldLabel}>Название игры</div>
+              <input
+                style={{
+                  ...m1Styles.fieldInput,
+                  borderBottomColor: activeCard === card.id ? '#C05A3A' : '#EDE0D4',
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: 16,
+                  fontWeight: 600,
+                }}
+                placeholder="Игра «...»"
+                value={card.name}
+                onChange={e => update(card.id, 'name', e.target.value)}
+              />
+            </div>
+            <div>
+              <div style={m1Styles.fieldLabel}>Правила</div>
+              <textarea
+                style={{
+                  ...m1Styles.fieldTextarea,
+                  borderColor: activeCard === card.id ? '#C05A3A' : '#EDE0D4',
+                  height: 64,
+                }}
+                placeholder="Что я делаю, когда «играю»..."
+                value={card.rules}
+                onChange={e => update(card.id, 'rules', e.target.value)}
+              />
+            </div>
+            <div>
+              <div style={m1Styles.fieldLabel}>Триггеры</div>
+              <textarea
+                style={{
+                  ...m1Styles.fieldTextarea,
+                  borderColor: activeCard === card.id ? '#C05A3A' : '#EDE0D4',
+                  height: 56,
+                }}
+                placeholder="Что запускает эту игру..."
+                value={card.triggers}
+                onChange={e => update(card.id, 'triggers', e.target.value)}
+              />
+            </div>
+            <div>
+              <div style={m1Styles.fieldLabel}>Выигрыш / скрытая выгода</div>
+              <textarea
+                style={{
+                  ...m1Styles.fieldTextarea,
+                  borderColor: activeCard === card.id ? '#C05A3A' : '#EDE0D4',
+                  height: 56,
+                }}
+                placeholder="Что я «получаю» от этой игры..."
+                value={card.payoff}
+                onChange={e => update(card.id, 'payoff', e.target.value)}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {cards.length < 4 && (
+        <button style={m1Styles.addBtn} onClick={addCard}>
+          <span style={{fontSize: 18, lineHeight: 1}}>+</span> Добавить ещё игру
+        </button>
+      )}
+
+      {filledCount > 0 && (
+        <div style={{
+          marginTop: 24,
+          background: 'linear-gradient(135deg, #FFF8F0, #FAF0E8)',
+          border: '1px solid #EDD8C4',
+          borderRadius: 12,
+          padding: '18px 20px',
+        }}>
+          <div style={{fontFamily: "'Playfair Display', serif", fontSize: 15, color: '#C05A3A', marginBottom: 8, fontWeight: 700}}>
+            💡 Ключевой вопрос для каждой игры
+          </div>
+          <p style={{fontSize: 14, color: '#5A4438', lineHeight: 1.7, margin: 0}}>
+            Посмотрите на «выигрыш». Какой <strong>фрейм</strong> (убеждение о себе или партнёре) стоит за этой игрой? 
+            Именно там — корень. Меняя фрейм, мы меняем игру.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Module1({ onComplete, onNavigate }) {
+  const [theoryOpen, setTheoryOpen] = useState(false);
+
+  return (
+    <div style={{paddingTop: 0}}>
+      <style>{`
+        @media (max-width: 768px) {
+          .m1-wrap { padding: 24px 16px 60px !important; }
+          .m1-hero { padding: 36px 24px !important; }
+          .m1-hero-title { font-size: 28px !important; }
+          .m1-two-col { grid-template-columns: 1fr !important; }
+        }
+        .add-card-btn:hover { background: #FFF5EC !important; }
+        .next-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(192,90,58,0.38) !important; }
+        .field-input:focus { border-bottom-color: #C05A3A !important; }
+      `}</style>
+
+      <div style={m1Styles.wrap} className="m1-wrap">
+        {/* Hero */}
+        <div style={m1Styles.hero} className="m1-hero">
+          <div style={m1Styles.heroSuit}>♥</div>
+          <div style={m1Styles.heroNum}>Модуль 01</div>
+          <div style={m1Styles.heroTitle} className="m1-hero-title">
+            Что такое<br/>Игры Любви?
+          </div>
+          <div style={m1Styles.heroSub}>
+            Каждый из нас играет в игры в отношениях — осознанно или нет. 
+            Этот модуль откроет вам главный секрет: фреймы управляют играми.
+          </div>
+        </div>
+
+        {/* Theory Block */}
+        <div style={m1Styles.section}>
+          <div style={m1Styles.sectionTitle}>Центральная метафора</div>
+          <p style={m1Styles.body}>
+            Л. Майкл Холл предлагает смотреть на всё наше поведение в отношениях как на <strong>«игры»</strong> — 
+            структурированные паттерны взаимодействия со своими правилами, триггерами и «выигрышем». 
+            У каждой игры есть невидимый двигатель — <strong>фрейм</strong>.
+          </p>
+          <div style={{display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16}}>
+            {['NLP', 'Нейро-Семантика', 'Meta-States', 'Frame Games'].map(t => (
+              <span key={t} style={m1Styles.tag}>{t}</span>
+            ))}
+          </div>
+
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14}} className="m1-two-col">
+            <div style={{...m1Styles.infoBox, background: '#FFF8F4', border: '1px solid #F0D8CE'}}>
+              <div style={{fontFamily: "'Playfair Display', serif", fontSize: 15, color: '#C05A3A', marginBottom: 8, fontWeight: 700}}>
+                🎭 Внутренняя игра
+              </div>
+              <div style={{fontSize: 13, color: '#6A4A3C', lineHeight: 1.7}}>
+                Мысли, чувства, убеждения, образы, внутренний диалог. То, что происходит внутри нас — 
+                первичная реальность, которая создаёт внешнее поведение.
+              </div>
+            </div>
+            <div style={{...m1Styles.infoBox, background: '#F4F8F4', border: '1px solid #CDE0CD'}}>
+              <div style={{fontFamily: "'Playfair Display', serif", fontSize: 15, color: '#2D5240', marginBottom: 8, fontWeight: 700}}>
+                🌍 Внешняя игра
+              </div>
+              <div style={{fontSize: 13, color: '#3A5A3C', lineHeight: 1.7}}>
+                Действия, слова, жесты, поведение — то, что видит партнёр. Внешняя игра всегда 
+                отражает внутреннюю.
+              </div>
+            </div>
+          </div>
+
+          <button
+            style={m1Styles.expand}
+            onClick={() => setTheoryOpen(o => !o)}
+          >
+            {theoryOpen ? '▲' : '▼'} {theoryOpen ? 'Скрыть детали' : 'Подробнее: анатомия игры'}
+          </button>
+
+          {theoryOpen && (
+            <div style={{marginTop: 16, paddingTop: 16, borderTop: '1px solid #EDE0D4'}}>
+              <p style={m1Styles.body}>
+                Любая игра состоит из четырёх элементов. Как только вы их видите — 
+                вы уже вне игры, вы — наблюдатель. А наблюдатель может изменить игру.
+              </p>
+              {[
+                ['Имя', 'Как называется этот паттерн? Название даёт власть над ним.'],
+                ['Правила', 'Что нужно делать / не делать, чтобы «правильно» играть?'],
+                ['Триггеры', 'Что запускает игру? Слово, взгляд, ситуация...'],
+                ['Выигрыш', 'Какую скрытую потребность удовлетворяет эта игра?'],
+              ].map(([k, v]) => (
+                <div key={k} style={{display: 'flex', gap: 12, marginBottom: 12, alignItems: 'flex-start'}}>
+                  <div style={{
+                    background: '#FAF0EB',
+                    color: '#C05A3A',
+                    borderRadius: 8,
+                    padding: '4px 10px',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    marginTop: 2,
+                    letterSpacing: '0.04em',
+                  }}>{k}</div>
+                  <div style={{fontSize: 14, color: '#5A4438', lineHeight: 1.65}}>{v}</div>
+                </div>
+              ))}
+
+              <div style={{...m1Styles.infoBox, background: '#FFFBF0', border: '1px solid #EDD8A0', marginTop: 8}}>
+                <div style={{fontSize: 13, color: '#7A5C10', lineHeight: 1.7}}>
+                  <strong>Ключевая идея:</strong> Фреймы — это «рамки» восприятия, убеждения вроде «любовь означает...», 
+                  «настоящий партнёр должен...», «если любит — то...». Фрейм создаёт игру. Хочешь изменить игру — 
+                  найди и измени фрейм.
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Interactive */}
+        <div style={m1Styles.section}>
+          <div style={m1Styles.sectionTitle}>
+            Практика: Карточки ваших игр
+          </div>
+          <GameCardWidget />
+        </div>
+
+        {/* Примеры */}
+        <div style={{...m1Styles.section, background: '#F5F8F5'}}>
+          <div style={{...m1Styles.sectionTitle, fontSize: 18, marginBottom: 12}}>
+            Примеры типичных игр
+          </div>
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14}}>
+            {EXAMPLE_GAMES.map((g, i) => (
+              <div key={i} style={{
+                background: '#fff',
+                borderRadius: 12,
+                padding: '18px 20px',
+                border: '1px solid #E8E0D8',
+              }}>
+                <div style={{fontFamily: "'Playfair Display', serif", fontSize: 15, color: '#2C1810', marginBottom: 8, fontWeight: 600}}>
+                  {g.name}
+                </div>
+                {[['Правила', g.rules], ['Триггеры', g.triggers], ['Выигрыш', g.payoff]].map(([k, v]) => (
+                  <div key={k} style={{marginBottom: 6}}>
+                    <span style={{fontSize: 10, fontWeight: 700, color: '#A08878', letterSpacing: '0.1em', textTransform: 'uppercase'}}>{k}: </span>
+                    <span style={{fontSize: 13, color: '#5A4438'}}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Insights */}
+        <div style={m1Styles.section}>
+          <div style={m1Styles.sectionTitle}>Ключевые инсайты</div>
+          {[
+            ['🎯', 'Осознание игры — это уже половина изменения. Нельзя изменить то, чего не видишь.'],
+            ['🔑', 'Выигрыш всегда логичен. Ваша «плохая» игра когда-то была лучшим решением, которое вы нашли.'],
+            ['🌱', 'Новый фрейм → новая игра → новый опыт. Это не магия — это нейро-семантика.'],
+          ].map(([icon, text]) => (
+            <div key={text} style={m1Styles.insightRow}>
+              <span style={m1Styles.insightIcon}>{icon}</span>
+              <div style={m1Styles.insightText}>{text}</div>
+            </div>
+          ))}
+        </div>
+
+        <button
+          className="next-btn"
+          style={m1Styles.nextBtn}
+          onClick={() => onComplete(1)}
+        >
+          Модуль 2: Танец Романтики →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+window.Module1 = Module1;
+</script>
+
+<!-- ═══ MODULE 2 ═══════════════════════════════ -->
+<script type="text/babel">
+const M2 = {
+  accent: '#C8842A',
+  accentLight: '#FFF8EE',
+  dark: '#2C1810',
+  mid: '#7A5C4A',
+  cream: '#FAF6F0',
+};
+
+const m2s = {
+  wrap: { maxWidth: 780, margin: '0 auto', padding: '48px 32px 80px' },
+  hero: {
+    background: 'linear-gradient(135deg, #1A0E06 0%, #4A2808 100%)',
+    borderRadius: 20, padding: '52px 48px', marginBottom: 40, position: 'relative', overflow: 'hidden',
+  },
+  heroSuit: { position: 'absolute', top: 20, right: 28, fontSize: 80, opacity: 0.12, color: '#C8842A', fontFamily: 'serif', userSelect: 'none' },
+  heroNum: { fontFamily: "'Playfair Display', serif", color: '#C8842A', fontSize: 13, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 12 },
+  heroTitle: { fontFamily: "'Playfair Display', serif", color: '#F5EDE0', fontSize: 38, fontWeight: 700, lineHeight: 1.15, marginBottom: 12 },
+  heroSub: { color: '#A08868', fontSize: 16, lineHeight: 1.6, maxWidth: 480 },
+  section: { background: '#FFFFFF', borderRadius: 16, padding: '32px 36px', marginBottom: 24, boxShadow: '0 2px 16px rgba(44,24,16,0.07)' },
+  sectionTitle: { fontFamily: "'Playfair Display', serif", fontSize: 22, color: '#2C1810', fontWeight: 700, marginBottom: 16 },
+  body: { fontSize: 15, lineHeight: 1.75, color: '#5A4438', marginBottom: 12 },
+  insightRow: { display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 14, padding: '14px 16px', background: '#FAF6F0', borderRadius: 10 },
+  nextBtn: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+    width: '100%', padding: '16px', borderRadius: 12, border: 'none',
+    background: 'linear-gradient(135deg, #C8842A, #E0A050)', color: '#fff',
+    fontSize: 16, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+    marginTop: 32, boxShadow: '0 4px 20px rgba(200,132,42,0.3)', transition: 'all 0.2s',
+  },
+};
+
+const ROMANCE_LEVELS = [
+  { val: 0, label: 'Автопилот', desc: 'Романтика исчезла из фокуса. Отношения на «техническом обслуживании».', color: '#A08878' },
+  { val: 25, label: 'Усталость', desc: 'Иногда бывают моменты близости, но они случайны и редки.', color: '#C07850' },
+  { val: 50, label: 'Пробуждение', desc: 'Начинаете замечать, что хотите большего. Романтика становится осознанной.', color: '#C8842A' },
+  { val: 75, label: 'Культивация', desc: 'Целенаправленно создаёте романтические моменты. Фреймы становятся ресурсными.', color: '#A07830' },
+  { val: 100, label: 'Осознанная романтика', desc: 'Романтика как образ жизни. Каждый момент — возможность для связи.', color: '#2D5240' },
+];
+
+const TOXIC_FRAMES = [
+  { toxic: 'Он/она должен(а) сам(а) знать, что мне нужно', resource: 'Я беру ответственность за выражение своих потребностей — это и есть зрелая близость', category: 'Ожидания' },
+  { toxic: 'Романтика должна быть спонтанной, а не запланированной', resource: 'Намеренная романтика показывает приоритет. Лучший подарок — это время и внимание, которые выбраны сознательно', category: 'Идеализация' },
+  { toxic: 'Если страсть угасла — значит, мы не подходим друг другу', resource: 'Страсть требует ухода, как сад. Угасание — это сигнал к действию, не к уходу', category: 'Стадии' },
+  { toxic: 'Настоящая любовь не требует усилий', resource: 'Настоящая любовь — это практика. Усилие — признак ценности, а не слабости чувств', category: 'Миф' },
+  { toxic: 'Если он/она меня любит, то изменится', resource: 'Принятие человека таким, какой он есть — фундамент настоящей любви. Изменение — личный выбор каждого', category: 'Контроль' },
+  { toxic: 'Романтика — это только для начала отношений', resource: 'Романтика — это внутреннее состояние, не стадия. Великие любовники создают её снова и снова', category: 'Этапы' },
+];
+
+function RomanceSlider() {
+  const saved = parseInt(localStorage.getItem('ggl_m2_romance') || '50');
+  const [value, setValue] = useState(saved);
+
+  useEffect(() => {
+    localStorage.setItem('ggl_m2_romance', value);
+  }, [value]);
+
+  const current = ROMANCE_LEVELS.reduce((prev, curr) =>
+    Math.abs(curr.val - value) < Math.abs(prev.val - value) ? curr : prev
+  );
+
+  const getGradient = (v) => {
+    const stops = [
+      [0, '#A08878'], [25, '#C07850'], [50, '#C8842A'], [75, '#A07830'], [100, '#2D5240']
+    ];
+    const lo = stops.reduce((p, c) => c[0] <= v ? c : p);
+    const hi = stops.find(s => s[0] >= v) || lo;
+    return lo[1];
+  };
+
+  return (
+    <div>
+      <p style={m2s.body}>Где вы находитесь прямо сейчас в своих отношениях? Передвиньте ползунок:</p>
+
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#A08878', marginBottom: 10, letterSpacing: '0.06em' }}>
+          <span>АВТОПИЛОТ</span><span>ОСОЗНАННАЯ РОМАНТИКА</span>
+        </div>
+
+        <input
+          type="range" min="0" max="100" value={value}
+          onChange={e => setValue(parseInt(e.target.value))}
+          style={{ width: '100%', height: 6, accentColor: current.color, cursor: 'pointer' }}
+        />
+
+        {/* Tick markers */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+          {ROMANCE_LEVELS.map(l => (
+            <div key={l.val} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '20%' }}>
+              <div style={{
+                width: 8, height: 8, borderRadius: '50%',
+                background: value >= l.val ? l.color : '#EDE0D4',
+                transition: 'background 0.3s',
+                marginBottom: 4,
+              }}></div>
+              <span style={{ fontSize: 10, color: '#A08878', textAlign: 'center', lineHeight: 1.3 }}>{l.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Result card */}
+      <div style={{
+        background: `linear-gradient(135deg, ${current.color}18, ${current.color}08)`,
+        border: `2px solid ${current.color}40`,
+        borderRadius: 16,
+        padding: '24px 28px',
+        transition: 'all 0.4s',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 12,
+            background: current.color,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 22, color: '#fff',
+          }}>♦</div>
+          <div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: M2.dark, fontWeight: 700 }}>
+              {current.label}
+            </div>
+            <div style={{ fontSize: 12, color: '#A08878', marginTop: 2 }}>{value}% шкалы осознанности</div>
+          </div>
+        </div>
+        <p style={{ fontSize: 14, color: '#5A4438', lineHeight: 1.7, margin: 0 }}>{current.desc}</p>
+
+        {value < 75 && (
+          <div style={{ marginTop: 16, padding: '12px 16px', background: 'rgba(255,255,255,0.6)', borderRadius: 10 }}>
+            <div style={{ fontSize: 13, color: '#7A5C4A', lineHeight: 1.65 }}>
+              <strong>Следующий шаг:</strong> {
+                value < 25 ? 'Начните с малого — замечайте один момент связи в день. Без давления, без ожиданий.' :
+                value < 50 ? 'Попробуйте назначить «свидание» с партнёром. Не как обязанность, а как выбор.' :
+                'Создайте один новый романтический ритуал — утренний, вечерний или еженедельный.'
+              }
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ReframingExercise() {
+  const savedIdx = parseInt(localStorage.getItem('ggl_m2_reframe_idx') || '0');
+  const savedCustom = localStorage.getItem('ggl_m2_custom') || '';
+
+  const [selectedIdx, setSelectedIdx] = useState(savedIdx);
+  const [customToxic, setCustomToxic] = useState(savedCustom);
+  const [showCustom, setShowCustom] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+  const [customResult, setCustomResult] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('ggl_m2_reframe_idx', selectedIdx);
+    setRevealed(false);
+  }, [selectedIdx]);
+
+  useEffect(() => {
+    localStorage.setItem('ggl_m2_custom', customToxic);
+  }, [customToxic]);
+
+  const handleCustomReframe = async () => {
+    if (!customToxic.trim()) return;
+    setLoading(true);
+    setCustomResult('');
+    try {
+      const result = await aiComplete(`Ты коуч по нейро-семантике и NLP. Пользователь указал токсичный фрейм в отношениях: "${customToxic}". 
+Сформулируй ресурсный альтернативный фрейм в 1-2 предложениях. Тон тёплый, мудрый, не поучительный. Только сам фрейм, без вступлений.`
+        );
+      setCustomResult(result);
+    } catch (e) {
+      setCustomResult('Подумайте: что более ресурсное убеждение могло бы занять это место?');
+    }
+    setLoading(false);
+  };
+
+  const frame = TOXIC_FRAMES[selectedIdx];
+
+  return (
+    <div>
+      <p style={m2s.body}>Выберите токсичный фрейм, который вам знаком, и увидите ресурсную альтернативу. Или введите свой:</p>
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+        {TOXIC_FRAMES.map((f, i) => (
+          <button
+            key={i}
+            onClick={() => { setSelectedIdx(i); setShowCustom(false); }}
+            style={{
+              padding: '7px 14px',
+              borderRadius: 8,
+              border: `1.5px solid ${selectedIdx === i && !showCustom ? '#C8842A' : '#EDE0D4'}`,
+              background: selectedIdx === i && !showCustom ? '#FFF8EE' : 'transparent',
+              color: selectedIdx === i && !showCustom ? '#C8842A' : '#7A5C4A',
+              fontSize: 12,
+              cursor: 'pointer',
+              fontFamily: "'DM Sans', sans-serif",
+              fontWeight: selectedIdx === i && !showCustom ? 600 : 400,
+              transition: 'all 0.2s',
+            }}
+          >{f.category}</button>
+        ))}
+        <button
+          onClick={() => setShowCustom(true)}
+          style={{
+            padding: '7px 14px', borderRadius: 8,
+            border: `1.5px solid ${showCustom ? '#C8842A' : '#EDE0D4'}`,
+            background: showCustom ? '#FFF8EE' : 'transparent',
+            color: showCustom ? '#C8842A' : '#7A5C4A',
+            fontSize: 12, cursor: 'pointer',
+            fontFamily: "'DM Sans', sans-serif",
+            fontWeight: showCustom ? 600 : 400,
+            transition: 'all 0.2s',
+          }}
+        >✏️ Свой фрейм</button>
+      </div>
+
+      {!showCustom ? (
+        <div>
+          {/* Toxic frame */}
+          <div style={{
+            background: '#FFF4F0', border: '2px solid #F0C0B0',
+            borderRadius: 14, padding: '20px 24px', marginBottom: 16,
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: '#C05A3A', marginBottom: 10, textTransform: 'uppercase' }}>
+              🔴 Токсичный фрейм
+            </div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: '#3C1808', lineHeight: 1.5, fontStyle: 'italic' }}>
+              «{frame.toxic}»
+            </div>
+          </div>
+
+          {!revealed ? (
+            <button
+              onClick={() => setRevealed(true)}
+              style={{
+                width: '100%', padding: '14px', borderRadius: 12,
+                border: '2px solid #C8842A', background: 'transparent',
+                color: '#C8842A', fontSize: 14, fontWeight: 600,
+                cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+                transition: 'all 0.2s',
+              }}
+            >
+              ✨ Показать ресурсный фрейм
+            </button>
+          ) : (
+            <div style={{
+              background: '#F0F8F4', border: '2px solid #A0C8A8',
+              borderRadius: 14, padding: '20px 24px',
+              animation: 'fadeIn 0.4s ease',
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: '#2D5240', marginBottom: 10, textTransform: 'uppercase' }}>
+                🌱 Ресурсный фрейм
+              </div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: '#1A3828', lineHeight: 1.5, fontStyle: 'italic' }}>
+                «{frame.resource}»
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: '#A08878', marginBottom: 8, textTransform: 'uppercase' }}>
+              Ваш токсичный фрейм
+            </div>
+            <textarea
+              value={customToxic}
+              onChange={e => setCustomToxic(e.target.value)}
+              placeholder="Напишите убеждение, которое мешает вам в отношениях..."
+              style={{
+                width: '100%', border: '1.5px solid #EDE0D4', borderRadius: 10,
+                padding: '12px 14px', fontSize: 14, color: '#2C1810',
+                fontFamily: "'DM Sans', sans-serif", outline: 'none', resize: 'none',
+                height: 80, lineHeight: 1.6, background: '#FFFDF9',
+              }}
+            />
+          </div>
+          <button
+            onClick={handleCustomReframe}
+            disabled={loading || !customToxic.trim()}
+            style={{
+              width: '100%', padding: '13px', borderRadius: 10,
+              border: 'none', background: loading ? '#D0C0B0' : '#C8842A',
+              color: '#fff', fontSize: 14, fontWeight: 600,
+              cursor: loading ? 'default' : 'pointer',
+              fontFamily: "'DM Sans', sans-serif",
+              transition: 'all 0.2s', marginBottom: 16,
+            }}
+          >
+            {loading ? '⏳ Генерирую...' : '✨ Получить ресурсный фрейм'}
+          </button>
+          {customResult && (
+            <div style={{
+              background: '#F0F8F4', border: '2px solid #A0C8A8',
+              borderRadius: 14, padding: '20px 24px',
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: '#2D5240', marginBottom: 10, textTransform: 'uppercase' }}>
+                🌱 Ресурсный фрейм
+              </div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: '#1A3828', lineHeight: 1.5, fontStyle: 'italic' }}>
+                «{customResult}»
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }`}</style>
+    </div>
+  );
+}
+
+function Module2({ onComplete }) {
+  const [theoryOpen, setTheoryOpen] = useState(false);
+
+  return (
+    <div>
+      <style>{`@media(max-width:768px){.m2-wrap{padding:24px 16px 60px !important;}.m2-hero{padding:36px 24px !important;}.m2-title{font-size:28px !important;}}`}</style>
+      <div style={m2s.wrap} className="m2-wrap">
+        <div style={m2s.hero} className="m2-hero">
+          <div style={m2s.heroSuit}>♦</div>
+          <div style={m2s.heroNum}>Модуль 02</div>
+          <div style={{...m2s.heroTitle}} className="m2-title">Танец Романтики<br/>и Притяжения</div>
+          <div style={m2s.heroSub}>Романтика — это не событие, которое происходит с вами. Это состояние ума, которое вы создаёте.</div>
+        </div>
+
+        <div style={m2s.section}>
+          <div style={m2s.sectionTitle}>Романтика как внутреннее состояние</div>
+          <p style={m2s.body}>Большинство из нас ждут, что романтика «случится» — как будто это внешнее событие. Но Холл утверждает: романтика живёт внутри. Это <strong>фрейм восприятия</strong>, который вы надеваете на обычные моменты.</p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginTop: 16, marginBottom: 16 }}>
+            {[
+              { stage: '1. Влюблённость', desc: 'Химия, идеализация, слияние. Нейробиологический «наркотик».' },
+              { stage: '2. Реальность', desc: 'Спадает флёр. Партнёр становится «настоящим». Тест отношений.' },
+              { stage: '3. Решение', desc: 'Выбрать любить. Переход от «нас нашло» к «мы создаём».' },
+              { stage: '4. Глубокая романтика', desc: 'Осознанная, зрелая, богатая смыслом. Лучше, чем влюблённость.' },
+            ].map(s => (
+              <div key={s.stage} style={{ background: '#FFF8F0', borderRadius: 10, padding: '14px 16px', border: '1px solid #F0E0CC' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#C8842A', marginBottom: 6 }}>{s.stage}</div>
+                <div style={{ fontSize: 13, color: '#5A4438', lineHeight: 1.6 }}>{s.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          <button style={{ background: 'none', border: 'none', color: '#C8842A', cursor: 'pointer', fontSize: 13, fontWeight: 600, padding: '4px 0', display: 'flex', alignItems: 'center', gap: 6 }}
+            onClick={() => setTheoryOpen(o => !o)}>
+            {theoryOpen ? '▲' : '▼'} Фреймы, убивающие романтику
+          </button>
+          {theoryOpen && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #EDE0D4' }}>
+              {[
+                ['⚡ Ожидания', 'Когда реальный партнёр не совпадает с идеальным образом в голове — разочарование гасит романтику.'],
+                ['🎭 Идеализация', '«Влюблённость» в образ, не в человека. Когда падает маска — падает и чувство.'],
+                ['⏰ Автоматизм', 'Брать партнёра как само собой разумеющееся. Романтика умирает от невнимания.'],
+                ['📊 Счётчик', 'Постоянный подсчёт кто больше сделал. Разрушает дух дарения.'],
+              ].map(([k, v]) => (
+                <div key={k} style={{ ...m2s.insightRow, marginBottom: 10 }}>
+                  <span style={{ fontSize: 17 }}>{k.split(' ')[0]}</span>
+                  <div style={{ fontSize: 14, color: '#5A4438', lineHeight: 1.65 }}>
+                    <strong>{k.slice(2)}</strong> — {v}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={m2s.section}>
+          <div style={m2s.sectionTitle}>Диагностика: Шкала романтики</div>
+          <RomanceSlider />
+        </div>
+
+        <div style={m2s.section}>
+          <div style={m2s.sectionTitle}>Рефрейминг: от токсичного к ресурсному</div>
+          <ReframingExercise />
+        </div>
+
+        <div style={m2s.section}>
+          <div style={m2s.sectionTitle}>Ключевые инсайты</div>
+          {[
+            ['♦', 'Романтика — это навык, не дар. Её можно развивать целенаправленно.'],
+            ['🌹', 'Лучшие романтические отношения — это когда два человека выбирают друг друга снова и снова.'],
+            ['✨', 'Фрейм «партнёр — это подарок» создаёт совершенно иную игру, чем фрейм «партнёр — это должное».'],
+          ].map(([icon, text]) => (
+            <div key={text} style={m2s.insightRow}>
+              <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
+              <div style={{ fontSize: 14, color: '#5A4438', lineHeight: 1.65 }}>{text}</div>
+            </div>
+          ))}
+        </div>
+
+        <button style={m2s.nextBtn} onClick={() => onComplete(2)}>
+          Модуль 3: Эмоциональный Банк →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+window.Module2 = Module2;
+</script>
+
+<!-- ═══ MODULE 3 ═══════════════════════════════ -->
+<script type="text/babel">
+const m3s = {
+  wrap: { maxWidth: 780, margin: '0 auto', padding: '48px 32px 80px' },
+  hero: {
+    background: 'linear-gradient(135deg, #0D1F18 0%, #1A3828 100%)',
+    borderRadius: 20, padding: '52px 48px', marginBottom: 40, position: 'relative', overflow: 'hidden',
+  },
+  heroSuit: { position: 'absolute', top: 20, right: 28, fontSize: 80, opacity: 0.12, color: '#4A9A70', fontFamily: 'serif', userSelect: 'none' },
+  heroNum: { fontFamily: "'Playfair Display', serif", color: '#4A9A70', fontSize: 13, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 12 },
+  heroTitle: { fontFamily: "'Playfair Display', serif", color: '#F5EDE0', fontSize: 38, fontWeight: 700, lineHeight: 1.15, marginBottom: 12 },
+  heroSub: { color: '#7A9A8A', fontSize: 16, lineHeight: 1.6, maxWidth: 480 },
+  section: { background: '#FFFFFF', borderRadius: 16, padding: '32px 36px', marginBottom: 24, boxShadow: '0 2px 16px rgba(44,24,16,0.07)' },
+  sectionTitle: { fontFamily: "'Playfair Display', serif", fontSize: 22, color: '#2C1810', fontWeight: 700, marginBottom: 16 },
+  body: { fontSize: 15, lineHeight: 1.75, color: '#5A4438', marginBottom: 12 },
+  insightRow: { display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 14, padding: '14px 16px', background: '#FAF6F0', borderRadius: 10 },
+  nextBtn: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+    width: '100%', padding: '16px', borderRadius: 12, border: 'none',
+    background: 'linear-gradient(135deg, #2D5240, #4A7A60)', color: '#fff',
+    fontSize: 16, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+    marginTop: 32, boxShadow: '0 4px 20px rgba(45,82,64,0.3)', transition: 'all 0.2s',
+  },
+};
+
+const DEPOSIT_SUGGESTIONS = [
+  'Искреннее «спасибо»', 'Внимательное слушание', 'Неожиданный сюрприз',
+  'Слова поддержки', 'Помощь без просьбы', 'Качественное время вместе',
+  'Физическая нежность', 'Выполненное обещание', 'Комплимент',
+];
+const WITHDRAWAL_SUGGESTIONS = [
+  'Резкие слова в злости', 'Игнорирование', 'Несдержанное обещание',
+  'Критика при других', 'Пренебрежение чувствами', 'Ложь или недосказанность',
+  'Постоянные упрёки', 'Безразличие к нуждам',
+];
+
+function BankAccount() {
+  const loadData = () => {
+    try { return JSON.parse(localStorage.getItem('ggl_m3_bank') || 'null'); } catch { return null; }
+  };
+
+  const [transactions, setTransactions] = useState(loadData()?.transactions || []);
+  const [input, setInput] = useState('');
+  const [type, setType] = useState('deposit');
+  const [amount, setAmount] = useState(10);
+  const [animBal, setAnimBal] = useState(null);
+  const animRef = useRef(null);
+
+  const balance = transactions.reduce((s, t) => s + t.value, 0);
+  const clampedBal = Math.max(-100, Math.min(100, balance));
+
+  useEffect(() => {
+    localStorage.setItem('ggl_m3_bank', JSON.stringify({ transactions }));
+  }, [transactions]);
+
+  // Animate balance on change
+  useEffect(() => {
+    if (animRef.current) clearTimeout(animRef.current);
+    setAnimBal(true);
+    animRef.current = setTimeout(() => setAnimBal(false), 600);
+  }, [balance]);
+
+  const addTransaction = () => {
+    if (!input.trim()) return;
+    const val = type === 'deposit' ? amount : -amount;
+    const tx = { id: Date.now(), text: input.trim(), value: val, type, date: new Date().toLocaleDateString('ru') };
+    setTransactions(ts => [tx, ...ts.slice(0, 19)]);
+    setInput('');
+    setAmount(10);
+  };
+
+  const removeTransaction = (id) => setTransactions(ts => ts.filter(t => t.id !== id));
+
+  const pct = ((clampedBal + 100) / 200) * 100;
+
+  const getBalanceColor = (b) => {
+    if (b > 50) return '#2D7A50';
+    if (b > 20) return '#5A9A60';
+    if (b > 0) return '#A0C080';
+    if (b > -20) return '#E0A050';
+    if (b > -50) return '#D06040';
+    return '#B03020';
+  };
+  const balColor = getBalanceColor(clampedBal);
+
+  const getBalanceLabel = (b) => {
+    if (b > 70) return 'Глубокое доверие';
+    if (b > 40) return 'Крепкая связь';
+    if (b > 10) return 'Хороший запас';
+    if (b > -10) return 'Нейтральный баланс';
+    if (b > -40) return 'Накапливается напряжение';
+    if (b > -70) return 'Критический уровень';
+    return 'Кризис доверия';
+  };
+
+  return (
+    <div>
+      <p style={m3s.body}>Каждое ваше взаимодействие с партнёром — это либо вклад, либо снятие с эмоционального счёта. Ведите свой реальный учёт:</p>
+
+      {/* Balance Gauge */}
+      <div style={{
+        background: 'linear-gradient(135deg, #0D1F18, #1A3828)',
+        borderRadius: 16, padding: '28px 32px', marginBottom: 24,
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 11, color: '#6A9A80', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Баланс доверия</div>
+            <div style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: 42,
+              fontWeight: 700,
+              color: balColor,
+              lineHeight: 1,
+              transition: 'color 0.5s',
+              ...(animBal ? { transform: 'scale(1.05)', transition: 'transform 0.15s, color 0.5s' } : {}),
+            }}>
+              {balance > 0 ? '+' : ''}{balance}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 13, color: balColor, fontWeight: 600, transition: 'color 0.5s' }}>{getBalanceLabel(clampedBal)}</div>
+            <div style={{ fontSize: 11, color: '#4A7A60', marginTop: 4 }}>{transactions.length} операций</div>
+          </div>
+        </div>
+
+        {/* Bar */}
+        <div style={{ position: 'relative', height: 12, background: 'rgba(255,255,255,0.08)', borderRadius: 6, overflow: 'hidden' }}>
+          {/* Zero marker */}
+          <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', width: 2, background: 'rgba(255,255,255,0.2)', zIndex: 2 }}></div>
+          <div style={{
+            position: 'absolute',
+            top: 0, bottom: 0,
+            left: balance >= 0 ? '50%' : `${pct}%`,
+            width: `${Math.abs(clampedBal) / 2}%`,
+            background: `linear-gradient(90deg, ${balColor}90, ${balColor})`,
+            borderRadius: 6,
+            transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          }}></div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: '#4A6A58' }}>
+          <span>-100</span><span>0</span><span>+100</span>
+        </div>
+      </div>
+
+      {/* Input */}
+      <div style={{ background: '#F9F6F2', borderRadius: 14, padding: '20px 22px', marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          {['deposit', 'withdrawal'].map(t => (
+            <button key={t} onClick={() => setType(t)} style={{
+              flex: 1, padding: '10px', borderRadius: 10,
+              border: `2px solid ${type === t ? (t === 'deposit' ? '#2D7A50' : '#C05A3A') : '#EDE0D4'}`,
+              background: type === t ? (t === 'deposit' ? '#EFF8F3' : '#FFF0EC') : 'transparent',
+              color: type === t ? (t === 'deposit' ? '#2D7A50' : '#C05A3A') : '#A08878',
+              fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+              transition: 'all 0.2s',
+            }}>
+              {t === 'deposit' ? '↑ Вклад' : '↓ Снятие'}
+            </button>
+          ))}
+        </div>
+
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && addTransaction()}
+          placeholder={type === 'deposit' ? 'Что вы сделали для партнёра...' : 'Что уменьшило доверие...'}
+          style={{
+            width: '100%', border: `1.5px solid ${type === 'deposit' ? '#A0C8A8' : '#E0A898'}`,
+            borderRadius: 10, padding: '11px 14px', fontSize: 14,
+            color: '#2C1810', fontFamily: "'DM Sans', sans-serif",
+            outline: 'none', background: '#fff', marginBottom: 12,
+          }}
+        />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+          <span style={{ fontSize: 13, color: '#7A5C4A', whiteSpace: 'nowrap' }}>Вес: {amount}</span>
+          <input type="range" min="1" max="30" value={amount}
+            onChange={e => setAmount(parseInt(e.target.value))}
+            style={{ flex: 1, accentColor: type === 'deposit' ? '#2D7A50' : '#C05A3A' }}
+          />
+        </div>
+
+        {/* Quick chips */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+          {(type === 'deposit' ? DEPOSIT_SUGGESTIONS : WITHDRAWAL_SUGGESTIONS).slice(0, 5).map(s => (
+            <button key={s} onClick={() => setInput(s)} style={{
+              padding: '4px 10px', borderRadius: 20,
+              border: '1px solid #EDE0D4', background: 'transparent',
+              color: '#7A5C4A', fontSize: 12, cursor: 'pointer',
+              fontFamily: "'DM Sans', sans-serif", transition: 'all 0.15s',
+            }}>{s}</button>
+          ))}
+        </div>
+
+        <button onClick={addTransaction} disabled={!input.trim()} style={{
+          width: '100%', padding: '12px', borderRadius: 10, border: 'none',
+          background: input.trim() ? (type === 'deposit' ? '#2D7A50' : '#C05A3A') : '#D0C8C0',
+          color: '#fff', fontSize: 14, fontWeight: 600,
+          cursor: input.trim() ? 'pointer' : 'default',
+          fontFamily: "'DM Sans', sans-serif", transition: 'all 0.2s',
+        }}>
+          {type === 'deposit' ? '+ Записать вклад' : '– Записать снятие'}
+        </button>
+      </div>
+
+      {/* Transactions */}
+      {transactions.length > 0 && (
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#A08878', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+            История операций
+          </div>
+          <div style={{ maxHeight: 280, overflowY: 'auto', paddingRight: 4 }}>
+            {transactions.map(tx => (
+              <div key={tx.id} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 14px', marginBottom: 6, borderRadius: 10,
+                background: tx.type === 'deposit' ? '#F0F8F2' : '#FEF4F0',
+                border: `1px solid ${tx.type === 'deposit' ? '#C0E0C8' : '#F0C8B8'}`,
+              }}>
+                <span style={{ fontSize: 16, flexShrink: 0 }}>{tx.type === 'deposit' ? '↑' : '↓'}</span>
+                <span style={{ flex: 1, fontSize: 14, color: '#3C2818' }}>{tx.text}</span>
+                <span style={{
+                  fontWeight: 700, fontSize: 14,
+                  color: tx.type === 'deposit' ? '#2D7A50' : '#C05A3A',
+                  flexShrink: 0,
+                }}>
+                  {tx.value > 0 ? '+' : ''}{tx.value}
+                </span>
+                <button onClick={() => removeTransaction(tx.id)} style={{
+                  background: 'none', border: 'none', color: '#C0B0A0',
+                  cursor: 'pointer', fontSize: 13, padding: 2, flexShrink: 0,
+                }}>✕</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {transactions.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '32px', color: '#A08878', fontSize: 14 }}>
+          Начните вести счёт своих взаимодействий с партнёром ↑
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Module3({ onComplete }) {
+  return (
+    <div>
+      <style>{`@media(max-width:768px){.m3-wrap{padding:24px 16px 60px !important;}.m3-hero{padding:36px 24px !important;}.m3-title{font-size:28px !important;}}`}</style>
+      <div style={m3s.wrap} className="m3-wrap">
+        <div style={m3s.hero} className="m3-hero">
+          <div style={m3s.heroSuit}>♣</div>
+          <div style={m3s.heroNum}>Модуль 03</div>
+          <div style={{...m3s.heroTitle}} className="m3-title">Эмоциональный<br/>Банковский Счёт</div>
+          <div style={m3s.heroSub}>Доверие — это не данность. Это баланс, который формируется каждым взаимодействием.</div>
+        </div>
+
+        <div style={m3s.section}>
+          <div style={m3s.sectionTitle}>Метафора банковского счёта</div>
+          <p style={m3s.body}>Стивен Кови ввёл эту метафору, Холл расширил её в контексте любовных отношений. Каждое взаимодействие с партнёром — это финансовая транзакция на счёте <strong>эмоционального доверия</strong>.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 16 }}>
+            <div style={{ background: '#EFF8F3', borderRadius: 12, padding: '18px 20px', border: '1px solid #B0D8B8' }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, color: '#2D7A50', marginBottom: 10, fontWeight: 700 }}>↑ Вклады</div>
+              {['Внимание и присутствие', 'Сдержанные обещания', 'Доброта в малом', 'Принятие без осуждения', 'Честность'].map(i => (
+                <div key={i} style={{ fontSize: 13, color: '#3A6048', marginBottom: 5, display: 'flex', gap: 6 }}>
+                  <span style={{ color: '#2D7A50' }}>✓</span> {i}
+                </div>
+              ))}
+            </div>
+            <div style={{ background: '#FEF4F0', borderRadius: 12, padding: '18px 20px', border: '1px solid #F0C0A8' }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 15, color: '#C05A3A', marginBottom: 10, fontWeight: 700 }}>↓ Снятия</div>
+              {['Невыполненные слова', 'Резкость и критика', 'Игнорирование чувств', 'Предательство доверия', 'Постоянные упрёки'].map(i => (
+                <div key={i} style={{ fontSize: 13, color: '#6A3020', marginBottom: 5, display: 'flex', gap: 6 }}>
+                  <span style={{ color: '#C05A3A' }}>✕</span> {i}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ marginTop: 16, background: '#FFFBF0', border: '1px solid #EDD8A0', borderRadius: 10, padding: '14px 16px' }}>
+            <div style={{ fontSize: 13, color: '#7A5C10', lineHeight: 1.7 }}>
+              <strong>Ключевое открытие:</strong> Одно снятие требует 5–7 вкладов для компенсации. Поэтому стоит инвестировать в счёт превентивно, не дожидаясь кризиса.
+            </div>
+          </div>
+        </div>
+
+        <div style={m3s.section}>
+          <div style={m3s.sectionTitle}>Ваш Эмоциональный Банк</div>
+          <BankAccount />
+        </div>
+
+        <div style={m3s.section}>
+          <div style={m3s.sectionTitle}>Ключевые инсайты</div>
+          {[
+            ['♣', 'Высокий счёт создаёт «запас прочности» — когда что-то идёт не так, партнёр даёт benefit of the doubt.'],
+            ['💎', 'Маленькие ежедневные вклады ценнее редких грандиозных жестов. Постоянство строит доверие.'],
+            ['🔍', 'Если счёт хронически низкий — это сигнал. Не «партнёр плохой», а «мы не инвестируем в связь».'],
+          ].map(([icon, text]) => (
+            <div key={text} style={m3s.insightRow}>
+              <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
+              <div style={{ fontSize: 14, color: '#5A4438', lineHeight: 1.65 }}>{text}</div>
+            </div>
+          ))}
+        </div>
+
+        <button style={m3s.nextBtn} onClick={() => onComplete(3)}>
+          Модуль 4: Игра Самораскрытия →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+window.Module3 = Module3;
+</script>
+
+<!-- ═══ MODULE 4 ═══════════════════════════════ -->
+<script type="text/babel">
+const m4s = {
+  wrap: { maxWidth: 780, margin: '0 auto', padding: '48px 32px 80px' },
+  hero: {
+    background: 'linear-gradient(135deg, #180A2A 0%, #3A1858 100%)',
+    borderRadius: 20, padding: '52px 48px', marginBottom: 40, position: 'relative', overflow: 'hidden',
+  },
+  heroSuit: { position: 'absolute', top: 20, right: 28, fontSize: 80, opacity: 0.12, color: '#9A60C8', fontFamily: 'serif', userSelect: 'none' },
+  heroNum: { fontFamily: "'Playfair Display', serif", color: '#9A60C8', fontSize: 13, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 12 },
+  heroTitle: { fontFamily: "'Playfair Display', serif", color: '#F5EDE0', fontSize: 38, fontWeight: 700, lineHeight: 1.15, marginBottom: 12 },
+  heroSub: { color: '#8A78A0', fontSize: 16, lineHeight: 1.6, maxWidth: 480 },
+  section: { background: '#FFFFFF', borderRadius: 16, padding: '32px 36px', marginBottom: 24, boxShadow: '0 2px 16px rgba(44,24,16,0.07)' },
+  sectionTitle: { fontFamily: "'Playfair Display', serif", fontSize: 22, color: '#2C1810', fontWeight: 700, marginBottom: 16 },
+  body: { fontSize: 15, lineHeight: 1.75, color: '#5A4438', marginBottom: 12 },
+  insightRow: { display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 14, padding: '14px 16px', background: '#FAF6F0', borderRadius: 10 },
+  nextBtn: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+    width: '100%', padding: '16px', borderRadius: 12, border: 'none',
+    background: 'linear-gradient(135deg, #5B3A7E, #7A50A0)', color: '#fff',
+    fontSize: 16, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+    marginTop: 32, boxShadow: '0 4px 20px rgba(91,58,126,0.3)', transition: 'all 0.2s',
+  },
+};
+
+const PYRAMID_LEVELS = [
+  {
+    id: 5, label: 'Уровень 5: Суть', color: '#5B3A7E', lightColor: '#F5EFF8',
+    desc: 'Мечты, страхи, смысл жизни, травмы, самые сокровенные желания',
+    examples: ['Мой главный страх', 'То, чего я стыжусь', 'Мои сокровенные мечты', 'Как я хочу быть запомнен'],
+    icon: '💜',
+  },
+  {
+    id: 4, label: 'Уровень 4: Ценности', color: '#7A50A0', lightColor: '#F0EBF8',
+    desc: 'Глубинные убеждения, моральные принципы, духовность, жизненная философия',
+    examples: ['Что для меня священно', 'Мои политические взгляды', 'Как я понимаю справедливость', 'Духовные убеждения'],
+    icon: '✦',
+  },
+  {
+    id: 3, label: 'Уровень 3: Переживания', color: '#8B6914', lightColor: '#FAF5E8',
+    desc: 'Прошлый опыт, отношения, семья, личная история, уязвимости',
+    examples: ['Детские воспоминания', 'Прошлые отношения', 'Моменты стыда', 'Чего я боюсь в отношениях'],
+    icon: '♦',
+  },
+  {
+    id: 2, label: 'Уровень 2: Мнения', color: '#C8842A', lightColor: '#FFF8EE',
+    desc: 'Взгляды, суждения, оценки, предпочтения, вкусы',
+    examples: ['Моё отношение к деньгам', 'Взгляды на воспитание детей', 'Что меня раздражает', 'Жизненные приоритеты'],
+    icon: '◆',
+  },
+  {
+    id: 1, label: 'Уровень 1: Факты', color: '#A08060', lightColor: '#FAF6F2',
+    desc: 'Работа, хобби, распорядок, нейтральная биография',
+    examples: ['Где работаю', 'Что люблю делать', 'Любимая еда', 'Как провёл выходные'],
+    icon: '○',
+  },
+];
+
+const DEEP_QUESTIONS = [
+  { level: 5, q: 'Если бы ты знал(а), что тебе осталось жить год — что бы изменил(а)?', category: 'Смысл' },
+  { level: 5, q: 'Какой страх больше всего управляет твоими решениями?', category: 'Страхи' },
+  { level: 5, q: 'Что ты так и не простил(а) себе?', category: 'Принятие' },
+  { level: 5, q: 'Что для тебя означает «прожить жизнь хорошо»?', category: 'Смысл' },
+  { level: 4, q: 'Что ты считаешь своей главной ценностью, за которую готов(а) бороться?', category: 'Ценности' },
+  { level: 4, q: 'Какое убеждение из детства до сих пор управляет тобой?', category: 'Убеждения' },
+  { level: 4, q: 'В какой момент ты чувствуешь себя наиболее живым(ой)?', category: 'Ценности' },
+  { level: 3, q: 'Какой опыт в прошлом сильнее всего изменил тебя?', category: 'История' },
+  { level: 3, q: 'Что ты больше всего боишься потерять в наших отношениях?', category: 'Уязвимость' },
+  { level: 3, q: 'Когда ты в последний раз чувствовал(а) себя по-настоящему увиденным(ой)?', category: 'Связь' },
+  { level: 2, q: 'Что тебя восхищает в других людях, но чего нет в тебе?', category: 'Рост' },
+  { level: 2, q: 'Как ты хочешь, чтобы о тебе думали через 20 лет?', category: 'Наследие' },
+];
+
+function DisclosurePyramid() {
+  const loadTopics = () => {
+    try { return JSON.parse(localStorage.getItem('ggl_m4_topics') || '{}'); } catch { return {}; }
+  };
+  const [topics, setTopics] = useState(loadTopics());
+  const [openLevel, setOpenLevel] = useState(null);
+  const [newTopic, setNewTopic] = useState('');
+  const [comfort, setComfort] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ggl_m4_comfort') || '{}'); } catch { return {}; }
+  });
+
+  useEffect(() => { localStorage.setItem('ggl_m4_topics', JSON.stringify(topics)); }, [topics]);
+  useEffect(() => { localStorage.setItem('ggl_m4_comfort', JSON.stringify(comfort)); }, [comfort]);
+
+  const addTopic = (levelId) => {
+    if (!newTopic.trim()) return;
+    setTopics(t => ({
+      ...t,
+      [levelId]: [...(t[levelId] || []), newTopic.trim()],
+    }));
+    setNewTopic('');
+  };
+
+  const removeTopic = (levelId, idx) => {
+    setTopics(t => ({ ...t, [levelId]: t[levelId].filter((_, i) => i !== idx) }));
+  };
+
+  const toggleComfort = (levelId) => {
+    setComfort(c => ({ ...c, [levelId]: !c[levelId] }));
+  };
+
+  const totalTopics = Object.values(topics).flat().length;
+
+  return (
+    <div>
+      <p style={m4s.body}>Близость строится постепенно — от поверхностного к глубокому. Добавьте темы, которые уже открыты в ваших отношениях, и те, которые хотите исследовать. Отметьте уровни, на которых вам комфортно находиться.</p>
+
+      {totalTopics > 0 && (
+        <div style={{ background: '#F0EBF8', borderRadius: 10, padding: '12px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 20 }}>💜</span>
+          <span style={{ fontSize: 14, color: '#5B3A7E' }}>
+            Вы добавили <strong>{totalTopics}</strong> тем. {totalTopics >= 5 ? 'Отличная работа — вы строите глубокую карту близости!' : 'Продолжайте добавлять темы для каждого уровня.'}
+          </span>
+        </div>
+      )}
+
+      {/* Pyramid visualization */}
+      <div style={{ marginBottom: 8 }}>
+        {PYRAMID_LEVELS.map((level, idx) => {
+          const isOpen = openLevel === level.id;
+          const levelTopics = topics[level.id] || [];
+          const isComfy = comfort[level.id];
+          const widthPct = 40 + (5 - idx) * 12;
+
+          return (
+            <div key={level.id} style={{ marginBottom: 6 }}>
+              {/* Triangle row */}
+              <div
+                onClick={() => setOpenLevel(isOpen ? null : level.id)}
+                style={{
+                  margin: '0 auto',
+                  width: `${widthPct}%`,
+                  minWidth: 240,
+                  background: isOpen ? level.color : level.lightColor,
+                  border: `2px solid ${level.color}`,
+                  borderRadius: isOpen ? '12px 12px 0 0' : 12,
+                  padding: '12px 20px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  transition: 'all 0.25s',
+                  userSelect: 'none',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 16 }}>{level.icon}</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: isOpen ? '#fff' : level.color }}>{level.label}</div>
+                    {levelTopics.length > 0 && (
+                      <div style={{ fontSize: 11, color: isOpen ? 'rgba(255,255,255,0.7)' : level.color, marginTop: 2 }}>
+                        {levelTopics.length} {levelTopics.length === 1 ? 'тема' : 'тем'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {isComfy && <span style={{ fontSize: 13, color: isOpen ? 'rgba(255,255,255,0.8)' : level.color }}>✓ Комфортно</span>}
+                  <span style={{ color: isOpen ? '#fff' : level.color, fontSize: 14 }}>{isOpen ? '▲' : '▼'}</span>
+                </div>
+              </div>
+
+              {/* Expanded panel */}
+              {isOpen && (
+                <div style={{
+                  margin: '0 auto',
+                  width: `${widthPct}%`,
+                  minWidth: 240,
+                  background: '#FFFDF9',
+                  border: `2px solid ${level.color}`,
+                  borderTop: 'none',
+                  borderRadius: '0 0 12px 12px',
+                  padding: '16px 20px',
+                }}>
+                  <p style={{ fontSize: 13, color: '#5A4438', lineHeight: 1.6, marginBottom: 12 }}>{level.desc}</p>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                    {level.examples.map(ex => (
+                      <button key={ex} onClick={() => { setNewTopic(ex); }}
+                        style={{
+                          padding: '4px 10px', borderRadius: 20,
+                          border: `1px solid ${level.color}60`,
+                          background: `${level.color}12`,
+                          color: level.color, fontSize: 12, cursor: 'pointer',
+                          fontFamily: "'DM Sans', sans-serif",
+                        }}>{ex}</button>
+                    ))}
+                  </div>
+
+                  {levelTopics.length > 0 && (
+                    <div style={{ marginBottom: 12 }}>
+                      {levelTopics.map((t, i) => (
+                        <div key={i} style={{
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          padding: '7px 10px', background: `${level.color}10`,
+                          borderRadius: 8, marginBottom: 5,
+                        }}>
+                          <span style={{ flex: 1, fontSize: 13, color: '#3C2818' }}>{t}</span>
+                          <button onClick={() => removeTopic(level.id, i)}
+                            style={{ background: 'none', border: 'none', color: '#C0B0A0', cursor: 'pointer', fontSize: 13, padding: 2 }}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                    <input
+                      value={newTopic}
+                      onChange={e => setNewTopic(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && addTopic(level.id)}
+                      placeholder="Добавить тему..."
+                      style={{
+                        flex: 1, border: `1.5px solid ${level.color}60`,
+                        borderRadius: 8, padding: '8px 12px', fontSize: 13,
+                        color: '#2C1810', fontFamily: "'DM Sans', sans-serif", outline: 'none', background: '#fff',
+                      }}
+                    />
+                    <button onClick={() => addTopic(level.id)} style={{
+                      padding: '8px 16px', borderRadius: 8, border: 'none',
+                      background: level.color, color: '#fff', fontSize: 13,
+                      fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+                    }}>+</button>
+                  </div>
+
+                  <button onClick={() => toggleComfort(level.id)} style={{
+                    padding: '8px 14px', borderRadius: 8,
+                    border: `1.5px solid ${level.color}`,
+                    background: isComfy ? level.color : 'transparent',
+                    color: isComfy ? '#fff' : level.color,
+                    fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", fontWeight: 600,
+                  }}>
+                    {isComfy ? '✓ Этот уровень мне комфортен' : 'Отметить как комфортный'}
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function QuestionGenerator() {
+  const [category, setCategory] = useState('all');
+  const [current, setCurrent] = useState(null);
+  const [used, setUsed] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [aiQuestion, setAiQuestion] = useState('');
+
+  const categories = ['all', ...new Set(DEEP_QUESTIONS.map(q => q.category))];
+
+  const getNext = () => {
+    const pool = DEEP_QUESTIONS.filter(q => (category === 'all' || q.category === category) && !used.includes(q.q));
+    if (pool.length === 0) { setUsed([]); return; }
+    const picked = pool[Math.floor(Math.random() * pool.length)];
+    setCurrent(picked);
+    setUsed(u => [...u, picked.q]);
+    setAiQuestion('');
+  };
+
+  const getAiQuestion = async () => {
+    setLoading(true);
+    setAiQuestion('');
+    try {
+      const result = await aiComplete(`Придумай один глубокий вопрос для партнёров, который поможет углубить близость и самораскрытие. Уровень глубины: ${category === 'all' ? 'любой' : category}. Только сам вопрос, без пояснений. На русском языке.`
+        );
+      setAiQuestion(result.trim());
+    } catch (e) {
+      setAiQuestion('Расскажи мне о моменте, когда ты чувствовал(а) себя полностью принятым(ой).');
+    }
+    setLoading(false);
+  };
+
+  const levelColor = current ? PYRAMID_LEVELS.find(l => l.id === current.level)?.color || '#5B3A7E' : '#5B3A7E';
+
+  return (
+    <div>
+      <p style={m4s.body}>Эти вопросы помогут вам и партнёру перейти от поверхностного к глубокому. Выберите категорию и начните разговор:</p>
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+        {categories.map(cat => (
+          <button key={cat} onClick={() => setCategory(cat)} style={{
+            padding: '7px 14px', borderRadius: 8,
+            border: `1.5px solid ${category === cat ? '#5B3A7E' : '#EDE0D4'}`,
+            background: category === cat ? '#F5EFF8' : 'transparent',
+            color: category === cat ? '#5B3A7E' : '#7A5C4A',
+            fontSize: 12, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+            fontWeight: category === cat ? 600 : 400, transition: 'all 0.2s',
+          }}>{cat === 'all' ? 'Все темы' : cat}</button>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+        <button onClick={getNext} style={{
+          flex: 1, padding: '13px', borderRadius: 10, border: 'none',
+          background: '#5B3A7E', color: '#fff', fontSize: 14, fontWeight: 600,
+          cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+        }}>
+          🎲 Случайный вопрос
+        </button>
+        <button onClick={getAiQuestion} disabled={loading} style={{
+          flex: 1, padding: '13px', borderRadius: 10,
+          border: '2px solid #5B3A7E', background: 'transparent',
+          color: loading ? '#A08878' : '#5B3A7E', fontSize: 14, fontWeight: 600,
+          cursor: loading ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif",
+          transition: 'all 0.2s',
+        }}>
+          {loading ? '⏳ Создаю...' : '✨ Создать с AI'}
+        </button>
+      </div>
+
+      {(current || aiQuestion) && (
+        <div style={{
+          background: current && !aiQuestion
+            ? `linear-gradient(135deg, ${levelColor}18, ${levelColor}08)`
+            : 'linear-gradient(135deg, #F5EFF8, #EBE4F4)',
+          border: `2px solid ${current && !aiQuestion ? levelColor : '#7A50A0'}40`,
+          borderRadius: 16, padding: '28px 30px',
+          animation: 'fadeIn 0.4s ease',
+        }}>
+          {current && !aiQuestion && (
+            <div style={{ fontSize: 11, fontWeight: 700, color: levelColor, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+              {PYRAMID_LEVELS.find(l => l.id === current.level)?.label} · {current.category}
+            </div>
+          )}
+          {aiQuestion && (
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#7A50A0', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
+              ✨ AI-вопрос
+            </div>
+          )}
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: '#2C1810', lineHeight: 1.4, fontStyle: 'italic' }}>
+            «{aiQuestion || current?.q}»
+          </div>
+          <div style={{ marginTop: 16, fontSize: 13, color: '#7A5C4A', lineHeight: 1.65 }}>
+            <em>Совет: не торопитесь с ответом. Дайте себе и партнёру время почувствовать, что возникает.</em>
+          </div>
+        </div>
+      )}
+
+      {!current && !aiQuestion && (
+        <div style={{ textAlign: 'center', padding: '32px', color: '#A08878', fontSize: 14 }}>
+          Нажмите кнопку выше, чтобы получить вопрос для глубокого разговора
+        </div>
+      )}
+
+      <style>{`@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }`}</style>
+    </div>
+  );
+}
+
+function Module4({ onComplete }) {
+  return (
+    <div>
+      <style>{`@media(max-width:768px){.m4-wrap{padding:24px 16px 60px !important;}.m4-hero{padding:36px 24px !important;}.m4-title{font-size:28px !important;}}`}</style>
+      <div style={m4s.wrap} className="m4-wrap">
+        <div style={m4s.hero} className="m4-hero">
+          <div style={m4s.heroSuit}>♠</div>
+          <div style={m4s.heroNum}>Модуль 04</div>
+          <div style={m4s.heroTitle} className="m4-title">Игра<br/>Самораскрытия</div>
+          <div style={m4s.heroSub}>Истинная близость рождается тогда, когда мы позволяем другому увидеть нас настоящими.</div>
+        </div>
+
+        <div style={m4s.section}>
+          <div style={m4s.sectionTitle}>Уровни близости</div>
+          <p style={m4s.body}>Холл описывает самораскрытие как путешествие вглубь. Большинство отношений застревают на поверхностных уровнях — не из-за отсутствия желания, а из-за страхов, которые блокируют путь вниз.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+            {['Страх отвержения', 'Страх уязвимости', 'Стыд и самооценка', 'Прошлые раны', 'Отсутствие доверия'].map(f => (
+              <div key={f} style={{ background: '#F8F0FC', border: '1px solid #D8C0EC', borderRadius: 10, padding: '12px 14px', display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ color: '#5B3A7E', fontSize: 14 }}>🔒</span>
+                <span style={{ fontSize: 13, color: '#4A2860' }}>{f}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={m4s.section}>
+          <div style={m4s.sectionTitle}>Пирамида самораскрытия</div>
+          <DisclosurePyramid />
+        </div>
+
+        <div style={m4s.section}>
+          <div style={m4s.sectionTitle}>Генератор глубоких вопросов</div>
+          <QuestionGenerator />
+        </div>
+
+        <div style={m4s.section}>
+          <div style={m4s.sectionTitle}>Ключевые инсайты</div>
+          {[
+            ['♠', 'Самораскрытие — это не слабость. Это мужество. И именно оно создаёт настоящую близость.'],
+            ['🗝️', 'Нас боятся узнать — потому что боятся, что, увидев настоящего нас, уйдут. Но именно скрытость и создаёт дистанцию.'],
+            ['🌊', 'Глубина самораскрытия определяет глубину отношений. Поверхностные разговоры = поверхностная связь.'],
+          ].map(([icon, text]) => (
+            <div key={text} style={m4s.insightRow}>
+              <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
+              <div style={{ fontSize: 14, color: '#5A4438', lineHeight: 1.65 }}>{text}</div>
+            </div>
+          ))}
+        </div>
+
+        <button style={m4s.nextBtn} onClick={() => onComplete(4)}>
+          Модуль 5: Языки Любви →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+window.Module4 = Module4;
+</script>
+
+<!-- ═══ MODULE 5 ═══════════════════════════════ -->
+<script type="text/babel">
+const VAK_Q=[
+  {q:'Когда вы впервые встречаете человека, что привлекает вас больше всего?',opts:[{t:'Его внешний вид, стиль, как он выглядит',k:'V'},{t:'Его голос, интонации, что он говорит',k:'A'},{t:'Энергия, которую вы чувствуете рядом с ним',k:'K'}]},
+  {q:'Как вы понимаете, что вас любят?',opts:[{t:'Когда партнёр смотрит на меня с нежностью',k:'V'},{t:'Когда говорит добрые слова и признания',k:'A'},{t:'Когда прикасается, обнимает, рядом физически',k:'K'}]},
+  {q:'В конфликте что задевает вас сильнее всего?',opts:[{t:'Если партнёр смотрит с пренебрежением',k:'V'},{t:'Обидные слова, тон голоса',k:'A'},{t:'Когда партнёр отстраняется физически',k:'K'}]},
+  {q:'Как лучший романтический вечер выглядит для вас?',opts:[{t:'Красивое место, свечи, красиво одетый партнёр',k:'V'},{t:'Долгий разговор, музыка, признания вслух',k:'A'},{t:'Объятия, танцы, физическая близость',k:'K'}]},
+  {q:'Что вы чаще запоминаете после свидания?',opts:[{t:'Как партнёр выглядел, улыбался',k:'V'},{t:'Что он говорил, как смеялся',k:'A'},{t:'Как было тепло и уютно рядом с ним',k:'K'}]},
+  {q:'Лучший комплимент для вас — это...',opts:[{t:'«Ты сегодня потрясающе выглядишь»',k:'V'},{t:'«Ты такой/такая умный/ая и интересный/ая»',k:'A'},{t:'«Мне так хорошо и спокойно рядом с тобой»',k:'K'}]},
+];
+const LOVE_LANGS=['Слова признания','Время и внимание','Подарки','Помощь и дела','Прикосновения'];
+const VAK_DESC={
+  V:{name:'Визуальная',emoji:'👁️',desc:'Вы влюбляетесь глазами. Вам важно видеть любовь — в жестах, взглядах, обстановке. Красота и эстетика питают ваши чувства.',strat:'Сначала увидеть → потом услышать → потом почувствовать'},
+  A:{name:'Аудиальная',emoji:'👂',desc:'Слова — ваш главный язык любви. Признания, разговоры, тон голоса — именно через них вы чувствуете связь.',strat:'Сначала услышать → потом увидеть → потом почувствовать'},
+  K:{name:'Кинестетическая',emoji:'🤝',desc:'Вы чувствуете любовь через прикосновения, физическое присутствие, тепло. Тело — ваш главный канал связи.',strat:'Сначала почувствовать → потом услышать → потом увидеть'},
+};
+
+function Module5({onComplete}){
+  const {useState}=React;
+  const load=()=>{try{return JSON.parse(localStorage.getItem('ggl_m5')||'null');}catch{return null;}};
+  const saved=load();
+  const [step,setStep]=useState(saved?.done?6:0);
+  const [answers,setAnswers]=useState(saved?.answers||[]);
+  const [appItems,setAppItems]=useState(saved?.appItems||[]);
+  const [newApp,setNewApp]=useState('');
+  const [appLang,setAppLang]=useState(LOVE_LANGS[0]);
+
+  const save=(a,ap)=>localStorage.setItem('ggl_m5',JSON.stringify({answers:a,appItems:ap,done:true}));
+
+  const answer=(k)=>{
+    const na=[...answers,k];
+    if(step<VAK_Q.length-1){setAnswers(na);setStep(s=>s+1);}
+    else{setAnswers(na);setStep(6);save(na,appItems);}
+  };
+
+  const counts=answers.reduce((o,k)=>{o[k]=(o[k]||0)+1;return o;},{V:0,A:0,K:0});
+  const dom=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0]||'V';
+  const desc=VAK_DESC[dom]||VAK_DESC.V;
+
+  const addApp=()=>{if(!newApp.trim())return;const ni=[...appItems,{id:Date.now(),text:newApp.trim(),lang:appLang}];setAppItems(ni);setNewApp('');save(answers,ni);};
+
+  return(
+    <Wrap>
+      <Hero num={5} suit="♥" bg="linear-gradient(135deg,#250818,#4A1030)" color="#D06080"
+        title="Языки Любви<br/>и Стратегии Признательности" sub="У каждого из нас есть уникальная стратегия любви — последовательность VAK, которая зажигает наше сердце."/>
+
+      <Card>
+        <CardTitle>VAK-Тест стратегии любви</CardTitle>
+        {step<6?(
+          <>
+            <div style={{display:'flex',gap:4,marginBottom:20}}>
+              {VAK_Q.map((_,i)=><div key={i} style={{flex:1,height:4,borderRadius:2,background:i<step?'#B04060':i===step?'#D06080':'#EDE0D4',transition:'background .3s'}}/>)}
+            </div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:'#2C1810',lineHeight:1.5,marginBottom:20}}>{VAK_Q[step].q}</div>
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              {VAK_Q[step].opts.map(opt=>(
+                <button key={opt.k} onClick={()=>answer(opt.k)} style={{
+                  textAlign:'left',padding:'14px 18px',borderRadius:12,border:'2px solid #EDE0D4',
+                  background:'#FFFDF9',color:'#3C2818',fontSize:14,cursor:'pointer',
+                  fontFamily:"'DM Sans',sans-serif",lineHeight:1.5,transition:'all .15s',
+                }}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor='#B04060';e.currentTarget.style.background='#FFF0F4';}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor='#EDE0D4';e.currentTarget.style.background='#FFFDF9';}}
+                >{opt.t}</button>
+              ))}
+            </div>
+          </>
+        ):(
+          <div className="fade-up">
+            <div style={{background:'linear-gradient(135deg,#FAF0F4,#FDE8EE)',border:'2px solid #E0A0B0',borderRadius:16,padding:'24px 28px',marginBottom:20}}>
+              <div style={{fontSize:13,fontWeight:700,color:'#B04060',letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:10}}>Ваша стратегия любви</div>
+              <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:14}}>
+                <span style={{fontSize:36}}>{desc.emoji}</span>
+                <div>
+                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,color:'#2C1810',fontWeight:700}}>{desc.name}</div>
+                  <div style={{fontSize:13,color:'#B04060',fontWeight:600,marginTop:4}}>{desc.strat}</div>
+                </div>
+              </div>
+              <div style={{fontSize:14,color:'#5A4438',lineHeight:1.7}}>{desc.desc}</div>
+              <div style={{display:'flex',gap:8,marginTop:16}}>
+                {Object.entries(counts).map(([k,v])=>(
+                  <div key={k} style={{flex:1,textAlign:'center',background:k===dom?'#B04060':'rgba(176,64,96,.1)',borderRadius:10,padding:'10px 6px'}}>
+                    <div style={{fontSize:18,marginBottom:4}}>{VAK_DESC[k]?.emoji}</div>
+                    <div style={{fontSize:16,fontWeight:700,color:k===dom?'#fff':'#B04060'}}>{v}</div>
+                    <div style={{fontSize:11,color:k===dom?'rgba(255,255,255,.8)':'#A08878'}}>{k}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button onClick={()=>{setStep(0);setAnswers([]);}} style={{padding:'8px 16px',borderRadius:8,border:'1.5px solid #B04060',background:'transparent',color:'#B04060',fontSize:13,cursor:'pointer',fontWeight:600}}>↺ Пройти снова</button>
+          </div>
+        )}
+      </Card>
+
+      <Card>
+        <CardTitle>Карта признательности</CardTitle>
+        <Body>Запишите конкретные действия, от которых вы чувствуете себя любимым(ой). Укажите язык любви:</Body>
+        <div style={{display:'flex',gap:8,marginBottom:12}}>
+          <input value={newApp} onChange={e=>setNewApp(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addApp()}
+            placeholder="Когда партнёр делает это — я чувствую себя любимым(ой)..."
+            style={{flex:1,border:'1.5px solid #EDE0D4',borderRadius:10,padding:'10px 12px',fontSize:14,color:'#2C1810',outline:'none'}}/>
+          <button onClick={addApp} disabled={!newApp.trim()} style={{padding:'10px 16px',borderRadius:10,border:'none',background:newApp.trim()?'#B04060':'#D0C0C8',color:'#fff',fontSize:14,fontWeight:600,cursor:newApp.trim()?'pointer':'default'}}>+</button>
+        </div>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:16}}>
+          {LOVE_LANGS.map(l=><button key={l} onClick={()=>setAppLang(l)} style={{padding:'5px 10px',borderRadius:8,border:`1.5px solid ${appLang===l?'#B04060':'#EDE0D4'}`,background:appLang===l?'#FFF0F4':'transparent',color:appLang===l?'#B04060':'#7A5C4A',fontSize:12,cursor:'pointer',fontWeight:appLang===l?600:400}}>{l}</button>)}
+        </div>
+        {appItems.length>0?(
+          <div style={{display:'grid',gap:8}}>
+            {appItems.map(item=>(
+              <div key={item.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:'#FFF8FA',borderRadius:10,border:'1px solid #F0D0D8'}}>
+                <span style={{flex:1,fontSize:14,color:'#3C2818'}}>{item.text}</span>
+                <span style={{fontSize:11,background:'#FAD0DC',color:'#B04060',borderRadius:6,padding:'2px 8px',whiteSpace:'nowrap'}}>{item.lang}</span>
+                <button onClick={()=>setAppItems(it=>it.filter(i=>i.id!==item.id))} style={{background:'none',border:'none',color:'#C0A0A8',cursor:'pointer',fontSize:12}}>✕</button>
+              </div>
+            ))}
+          </div>
+        ):<div style={{textAlign:'center',padding:24,color:'#A08878',fontSize:14}}>Добавьте то, от чего вы чувствуете себя любимым(ой) ↑</div>}
+      </Card>
+
+      <Card>
+        <CardTitle>Ключевые инсайты</CardTitle>
+        <Insight icon="♥" text="Говорить на языке любви партнёра важнее, чем на своём."/>
+        <Insight icon="👁️" text="Стратегия любви — это последовательность VAK: что нужно сначала увидеть, услышать, почувствовать."/>
+        <Insight icon="⚓" text="Якорение: связывайте ресурсные состояния с физическими жестами — прикосновением, словом."/>
+      </Card>
+
+      <NextBtn label="Модуль 6: Искусство Общения →" color="linear-gradient(135deg,#B04060,#C05070)" shadow="rgba(176,64,96,.3)" onClick={()=>onComplete(5)}/>
+    </Wrap>
+  );
+}
+window.Module5=Module5;
+</script>
+
+<!-- ═══ MODULE 6 ═══════════════════════════════ -->
+<script type="text/babel">
+const DIALOG_SCENARIOS=[
+  {
+    situation:'Вы пришли домой уставшим(ей), партнёр сразу начинает говорить о своих проблемах на работе.',
+    responses:[
+      {style:'Защитное',text:'"Подожди, я только зашёл(а). Дай мне хотя бы переодеться."',rapport:-15,bank:-10,explain:'Отталкивает партнёра, создаёт ощущение, что его чувства не важны.'},
+      {style:'Аналитическое',text:'"Ладно, расскажи. Значит проблема в том, что твой начальник..."',rapport:+5,bank:+5,explain:'Нейтрально, но партнёр хочет быть услышанным, а не проанализированным.'},
+      {style:'Аттентивное',text:'"Я слышу, тебе сейчас тяжело. Дай мне 5 минут — и я весь твой."',rapport:+20,bank:+20,explain:'Принимает чувства, устанавливает границу с уважением. Высокий раппорт.'},
+      {style:'Досуговое',text:'(Обнять, сесть рядом) "Расскажи всё. Я слушаю."',rapport:+25,bank:+25,explain:'Полное присутствие без слов. Самый мощный вклад в эмоциональный банк.'},
+    ]
+  },
+  {
+    situation:'Партнёр забыл о вашей договорённости провести вечер вместе.',
+    responses:[
+      {style:'Обвинение',text:'"Ты вечно так! Тебе всё равно на меня."',rapport:-30,bank:-30,explain:'Глобализация («вечно») и атака личности создают защитную реакцию.'},
+      {style:'Молчание',text:'(Ничего не говорите, дуетесь)',rapport:-20,bank:-15,explain:'Пассивная агрессия. Партнёр не понимает, в чём проблема. Напряжение растёт.'},
+      {style:'Я-сообщение',text:'"Я расстроился(лась), потому что ждал(а) нашего вечера. Мне важно это время с тобой."',rapport:+15,bank:+10,explain:'Говорит о своих чувствах без обвинений. Открывает диалог, а не закрывает его.'},
+      {style:'Любопытство',text:'"Что-то случилось? Я ждал(а) тебя — расскажи, что произошло."',rapport:+20,bank:+15,explain:'Предполагает добрые намерения. Создаёт пространство для объяснения.'},
+    ]
+  },
+  {
+    situation:'Партнёр предлагает что-то, что вам не очень нравится (план на выходные).',
+    responses:[
+      {style:'Прямой отказ',text:'"Нет, мне это неинтересно."',rapport:-10,bank:-5,explain:'Коротко, без альтернативы. Партнёр чувствует отвержение идеи и себя.'},
+      {style:'Пейсинг',text:'"Понимаю, почему тебе это нравится! А что если мы совместим это с..."',rapport:+20,bank:+20,explain:'Пейсинг (принятие) + лидирование (предложение). Оба чувствуют себя услышанными.'},
+      {style:'Согласие с оговоркой',text:'"Давай попробуем. Только хочу, чтобы была возможность уйти пораньше."',rapport:+15,bank:+10,explain:'Гибкость + честность о своих потребностях. Хороший баланс.'},
+      {style:'Вопрос',text:'"Расскажи мне больше — почему именно это тебе хочется?"',rapport:+25,bank:+15,explain:'Любопытство углубляет понимание. Партнёр чувствует интерес к себе.'},
+    ]
+  },
+];
+
+function Module6({onComplete}){
+  const {useState}=React;
+  const [scene,setScene]=useState(0);
+  const [chosen,setChosen]=useState(null);
+  const [totalRap,setTotalRap]=useState(0);
+  const [totalBank,setTotalBank]=useState(0);
+  const [done,setDone]=useState(false);
+
+  const s=DIALOG_SCENARIOS[scene];
+
+  const choose=(r)=>{
+    if(chosen)return;
+    setChosen(r);
+    setTotalRap(t=>t+r.rapport);
+    setTotalBank(t=>t+r.bank);
+  };
+  const nextScene=()=>{
+    if(scene<DIALOG_SCENARIOS.length-1){setScene(s=>s+1);setChosen(null);}
+    else setDone(true);
+  };
+  const reset=()=>{setScene(0);setChosen(null);setTotalRap(0);setTotalBank(0);setDone(false);};
+
+  const rapColor=totalRap>20?'#2D7A50':totalRap>0?'#C8842A':'#C05A3A';
+  const bankColor=totalBank>20?'#2D7A50':totalBank>0?'#C8842A':'#C05A3A';
+
+  return(
+    <Wrap>
+      <Hero num={6} suit="♦" bg="linear-gradient(135deg,#1A1408,#3A2A10)" color="#C8A030"
+        title="Искусство Общения<br/>в Любви" sub="Слова — это инструменты фреймирования. Как мы говорим, либо строит связь, либо разрушает её."/>
+
+      <Card>
+        <CardTitle>4 типа слушания</CardTitle>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:10}}>
+          {[['👂 Аттентивное','Полное присутствие. Вы здесь, сейчас, только для партнёра.','#2D5240','#F0F8F4'],
+            ['🔬 Аналитическое','Слушаете, чтобы понять и решить. Полезно, но не всегда то, что нужно.','#3A4A7E','#F0F2F8'],
+            ['☕ Досуговое','Расслабленное слушание. Партнёр чувствует, что вы рядом.','#C8842A','#FFF8EE'],
+            ['🛡️ Защитное','Слушаете, чтобы возразить. Разрушает раппорт.','#C05A3A','#FFF4F0'],
+          ].map(([t,d,c,bg])=>(
+            <div key={t} style={{background:bg,borderRadius:10,padding:'12px 14px',border:`1px solid ${c}30`}}>
+              <div style={{fontSize:13,fontWeight:700,color:c,marginBottom:6}}>{t}</div>
+              <div style={{fontSize:12,color:'#5A4438',lineHeight:1.5}}>{d}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card>
+        <CardTitle>Симулятор диалога</CardTitle>
+        {!done?(
+          <>
+            <div style={{display:'flex',gap:4,marginBottom:16}}>
+              {DIALOG_SCENARIOS.map((_,i)=><div key={i} style={{flex:1,height:4,borderRadius:2,background:i<scene?'#8B6914':i===scene?'#C8A030':'#EDE0D4',transition:'background .3s'}}/>)}
+            </div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,color:'#2C1810',lineHeight:1.6,marginBottom:20,fontStyle:'italic',background:'#FAF6F0',borderRadius:12,padding:'16px 20px'}}>
+              «{s.situation}»
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              {s.responses.map((r,i)=>{
+                const picked=chosen?.style===r.style;
+                const other=chosen&&!picked;
+                return(
+                  <button key={i} onClick={()=>choose(r)} style={{
+                    textAlign:'left',padding:'14px 18px',borderRadius:12,
+                    border:`2px solid ${picked?'#8B6914':other?'#EDE0D4':'#EDE0D4'}`,
+                    background:picked?'#FFF8E8':other?'#FAFAFA':'#FFFDF9',
+                    color:other?'#C0B0A0':'#3C2818',cursor:chosen?'default':'pointer',
+                    fontFamily:"'DM Sans',sans-serif",fontSize:14,lineHeight:1.5,transition:'all .2s',
+                  }}
+                  onMouseEnter={e=>{if(!chosen){e.currentTarget.style.borderColor='#C8A030';e.currentTarget.style.background='#FFFBF2';}}}
+                  onMouseLeave={e=>{if(!chosen){e.currentTarget.style.borderColor='#EDE0D4';e.currentTarget.style.background='#FFFDF9';}}}
+                  >
+                    <div style={{fontWeight:600,marginBottom:4,color:picked?'#8B6914':other?'#C0B0A0':'#2C1810'}}>{r.style}</div>
+                    {r.text}
+                    {picked&&(
+                      <div style={{marginTop:12,display:'flex',flexWrap:'wrap',gap:10}}>
+                        <div style={{fontSize:12,padding:'4px 10px',borderRadius:8,background:r.rapport>0?'#EFF8F3':'#FFF4F0',color:r.rapport>0?'#2D7A50':'#C05A3A',fontWeight:600}}>
+                          Раппорт {r.rapport>0?'+':''}{r.rapport}
+                        </div>
+                        <div style={{fontSize:12,padding:'4px 10px',borderRadius:8,background:r.bank>0?'#EFF8F3':'#FFF4F0',color:r.bank>0?'#2D7A50':'#C05A3A',fontWeight:600}}>
+                          Банк {r.bank>0?'+':''}{r.bank}
+                        </div>
+                        <div style={{width:'100%',fontSize:13,color:'#5A4438',lineHeight:1.6,marginTop:4}}>{r.explain}</div>
+                        <button onClick={nextScene} style={{marginTop:4,padding:'8px 20px',borderRadius:8,border:'none',background:'#8B6914',color:'#fff',fontSize:13,fontWeight:600,cursor:'pointer'}}>
+                          {scene<DIALOG_SCENARIOS.length-1?'Следующая ситуация →':'Посмотреть итоги →'}
+                        </button>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{display:'flex',gap:16,marginTop:20,padding:'14px 18px',background:'#FAF6F0',borderRadius:12}}>
+              <div style={{textAlign:'center'}}>
+                <div style={{fontSize:11,color:'#A08878',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>Раппорт</div>
+                <div style={{fontSize:22,fontWeight:700,color:rapColor}}>{totalRap>0?'+':''}{totalRap}</div>
+              </div>
+              <div style={{textAlign:'center'}}>
+                <div style={{fontSize:11,color:'#A08878',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>Банк доверия</div>
+                <div style={{fontSize:22,fontWeight:700,color:bankColor}}>{totalBank>0?'+':''}{totalBank}</div>
+              </div>
+            </div>
+          </>
+        ):(
+          <div className="fade-up">
+            <div style={{textAlign:'center',marginBottom:24}}>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,color:'#2C1810',fontWeight:700,marginBottom:8}}>Результат</div>
+              <div style={{display:'flex',gap:20,justifyContent:'center',marginBottom:16}}>
+                {[['Раппорт',totalRap,rapColor],['Банк доверия',totalBank,bankColor]].map(([l,v,c])=>(
+                  <div key={l} style={{textAlign:'center',background:'#FAF6F0',borderRadius:14,padding:'18px 24px'}}>
+                    <div style={{fontSize:36,fontWeight:700,color:c}}>{v>0?'+':''}{v}</div>
+                    <div style={{fontSize:13,color:'#A08878',marginTop:4}}>{l}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{fontSize:14,color:'#5A4438',lineHeight:1.75,maxWidth:480,margin:'0 auto 16px'}}>
+                {totalRap>40?'Великолепно! Вы выбирали ответы, которые строят связь. Аттентивное слушание и пейсинг — ваши сильные стороны.':
+                 totalRap>15?'Хорошо. Вы интуитивно чувствуете, что строит раппорт. Обратите внимание на «я-сообщения» и присутствие.':
+                 'Есть пространство для роста. Попробуйте практиковать аттентивное слушание и пейсинг в реальных ситуациях.'}
+              </div>
+              <button onClick={reset} style={{padding:'10px 24px',borderRadius:10,border:'1.5px solid #8B6914',background:'transparent',color:'#8B6914',fontSize:14,fontWeight:600,cursor:'pointer'}}>↺ Пройти снова</button>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      <Card>
+        <CardTitle>Ключевые инсайты</CardTitle>
+        <Insight icon="♦" text='«Аттентивное» слушание — это дар полного присутствия. Партнёр чувствует, что он единственный в мире.'/>
+        <Insight icon="🎵" text="Раппорт строится через зеркалирование языка и темпа партнёра."/>
+        <Insight icon="💬" text='«Сладкие пустяки», сказанные ежедневно, ценнее редких грандиозных признаний.'/>
+      </Card>
+
+      <NextBtn label="Модуль 7: Синхронизация →" color="linear-gradient(135deg,#8B6914,#C8A030)" shadow="rgba(139,105,20,.3)" onClick={()=>onComplete(6)}/>
+    </Wrap>
+  );
+}
+window.Module6=Module6;
+</script>
+
+<!-- ═══ MODULE 7 ═══════════════════════════════ -->
+<script type="text/babel">
+const META_PROGS=[
+  {id:'gd',left:'Глобальный',right:'Детальный',ldesc:'Видит общую картину',rdesc:'Важны детали'},
+  {id:'sd',left:'Сходство',right:'Различие',ldesc:'Ищет общее',rdesc:'Замечает отличия'},
+  {id:'ap',left:'Приближение',right:'Избегание',ldesc:'К чему стремится',rdesc:'Чего избегает'},
+  {id:'ir',left:'Внешняя реф.',right:'Внутренняя реф.',ldesc:'Спрашивает других',rdesc:'Доверяет себе'},
+  {id:'op',left:'Опции',right:'Процедуры',ldesc:'Любит варианты',rdesc:'Следует правилам'},
+  {id:'tp',left:'Прошлое',right:'Будущее',ldesc:'Опирается на опыт',rdesc:'Ориентирован на цели'},
+  {id:'pc',left:'Проактивный',right:'Рефлексивный',ldesc:'Действует быстро',rdesc:'Сначала думает'},
+  {id:'si',left:'Само-',right:'Другие-',ldesc:'Фокус на себе',rdesc:'Фокус на партнёре'},
+];
+
+function RadarChart({self,partner}){
+  const n=META_PROGS.length;
+  const cx=120,cy=120,r=80;
+  const angle=(i)=>((i/n)*2*Math.PI)-Math.PI/2;
+  const pt=(i,v)=>{
+    const a=angle(i);
+    const d=(v/100)*r;
+    return [cx+d*Math.cos(a),cy+d*Math.sin(a)];
+  };
+  const poly=(vals,color)=>{
+    const points=vals.map((v,i)=>{const[x,y]=pt(i,v);return `${x},${y}`;}).join(' ');
+    return <polygon points={points} fill={color+'30'} stroke={color} strokeWidth={2}/>;
+  };
+  const grids=[25,50,75,100];
+  return(
+    <svg width={240} height={240} style={{display:'block',margin:'0 auto'}}>
+      {grids.map(g=>(
+        <polygon key={g} points={META_PROGS.map((_,i)=>{const[x,y]=pt(i,g);return `${x},${y}`;}).join(' ')}
+          fill="none" stroke="#EDE0D4" strokeWidth={1}/>
+      ))}
+      {META_PROGS.map((_,i)=>{const[x,y]=pt(i,100);return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#EDE0D4" strokeWidth={1}/>;  })}
+      {poly(META_PROGS.map(p=>self[p.id]||50),'#1A5C50')}
+      {Object.keys(partner).length>0&&poly(META_PROGS.map(p=>partner[p.id]||50),'#C05A3A')}
+      {META_PROGS.map((p,i)=>{
+        const[x,y]=pt(i,115);
+        const[bx,by]=pt(i,100);
+        const[sx,sy]=pt(i,self[p.id]||50);
+        return(
+          <g key={p.id}>
+            <circle cx={sx} cy={sy} r={4} fill="#1A5C50"/>
+            <text x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontSize={8} fill="#7A5C4A"
+              style={{transform:`translate(${(x-cx)*0.12}px,${(y-cy)*0.12}px)`}}>
+              {i%2===0?p.left:p.right}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function Module7({onComplete}){
+  const {useState}=React;
+  const load=k=>()=>{try{return JSON.parse(localStorage.getItem(k)||'{}');}catch{return {};}};
+  const [self,setSelf]=useState(load('ggl_m7_self'));
+  const [partner,setPartner]=useState(load('ggl_m7_part'));
+  const [mode,setMode]=useState('self');
+
+  const save=(k,v)=>{localStorage.setItem(k,JSON.stringify(v));};
+  const setVal=(prog,v,isPartner)=>{
+    if(isPartner){const n={...partner,[prog]:v};setPartner(n);save('ggl_m7_part',n);}
+    else{const n={...self,[prog]:v};setSelf(n);save('ggl_m7_self',n);}
+  };
+
+  const cur=mode==='self'?self:partner;
+  const conflicts=META_PROGS.filter(p=>{
+    const sv=self[p.id]||50;const pv=partner[p.id]||50;return Math.abs(sv-pv)>35;
+  });
+
+  return(
+    <Wrap>
+      <Hero num={7} suit="♣" bg="linear-gradient(135deg,#081814,#0D2A24)" color="#4A9A80"
+        title="Синхронизация<br/>— Мета-Программы" sub="Мета-программы — невидимые фильтры восприятия. Их различия — главный источник «необъяснимых» конфликтов."/>
+
+      <Card>
+        <CardTitle>Профиль мета-программ</CardTitle>
+        <div style={{display:'flex',gap:8,marginBottom:20}}>
+          {[['self','Ваш профиль','#1A5C50'],['partner','Профиль партнёра','#C05A3A']].map(([m,l,c])=>(
+            <button key={m} onClick={()=>setMode(m)} style={{flex:1,padding:10,borderRadius:10,border:`2px solid ${mode===m?c:'#EDE0D4'}`,background:mode===m?`${c}18`:'transparent',color:mode===m?c:'#7A5C4A',fontSize:14,fontWeight:600,cursor:'pointer',transition:'all .2s'}}>{l}</button>
+          ))}
+        </div>
+
+        {META_PROGS.map(p=>{
+          const v=cur[p.id]||50;
+          const color=mode==='self'?'#1A5C50':'#C05A3A';
+          return(
+            <div key={p.id} style={{marginBottom:16}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                <span style={{fontSize:13,color:'#3A5A4A',fontWeight:500}}>{p.left}</span>
+                <span style={{fontSize:12,color:color,fontWeight:600}}>{v}</span>
+                <span style={{fontSize:13,color:'#5A3A3A',fontWeight:500}}>{p.right}</span>
+              </div>
+              <input type="range" min={0} max={100} value={v} onChange={e=>setVal(p.id,+e.target.value,mode==='partner')}
+                style={{width:'100%',color}}/>
+              <div style={{fontSize:11,color:'#A08878',textAlign:'center',marginTop:3}}>
+                {v<40?p.ldesc:v>60?p.rdesc:'Баланс'}
+              </div>
+            </div>
+          );
+        })}
+      </Card>
+
+      <Card>
+        <CardTitle>Визуальное сравнение</CardTitle>
+        <div style={{display:'flex',gap:16,alignItems:'center',justifyContent:'center',marginBottom:12}}>
+          <div style={{display:'flex',alignItems:'center',gap:6}}><div style={{width:12,height:12,borderRadius:'50%',background:'#1A5C50'}}/><span style={{fontSize:12,color:'#5A4438'}}>Ваш профиль</span></div>
+          <div style={{display:'flex',alignItems:'center',gap:6}}><div style={{width:12,height:12,borderRadius:'50%',background:'#C05A3A'}}/><span style={{fontSize:12,color:'#5A4438'}}>Партнёр</span></div>
+        </div>
+        <RadarChart self={self} partner={partner}/>
+        {Object.keys(partner).length>0&&conflicts.length>0&&(
+          <div style={{marginTop:20}}>
+            <div style={{fontSize:13,fontWeight:700,color:'#A04010',marginBottom:10}}>⚠️ Зоны потенциального конфликта:</div>
+            {conflicts.map(p=>(
+              <div key={p.id} style={{padding:'10px 14px',background:'#FFF8F4',borderRadius:10,marginBottom:8,border:'1px solid #F0C0A0'}}>
+                <div style={{fontSize:13,fontWeight:600,color:'#A04010',marginBottom:4}}>{p.left} ↔ {p.right}</div>
+                <div style={{fontSize:12,color:'#7A5C4A'}}>
+                  Вы: {(self[p.id]||50)<50?p.left:p.right} ({self[p.id]||50}) · Партнёр: {(partner[p.id]||50)<50?p.left:p.right} ({partner[p.id]||50})
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {Object.keys(partner).length===0&&<div style={{textAlign:'center',padding:16,fontSize:13,color:'#A08878'}}>Заполните профиль партнёра для сравнения</div>}
+      </Card>
+
+      <Card>
+        <CardTitle>Ключевые инсайты</CardTitle>
+        <Insight icon="♣" text="Конфликт из-за мета-программ — это не «кто прав», а «у нас разные карты реальности»."/>
+        <Insight icon="🔭" text="Знание профиля партнёра превращает раздражение в понимание."/>
+        <Insight icon="🌀" text="Гибкость: умение переключаться между мета-программами — навык великих любовников."/>
+      </Card>
+
+      <NextBtn label="Модуль 8: Осознанная Любовь →" color="linear-gradient(135deg,#1A5C50,#2A7A68)" shadow="rgba(26,92,80,.3)" onClick={()=>onComplete(7)}/>
+    </Wrap>
+  );
+}
+window.Module7=Module7;
+</script>
+
+<!-- ═══ MODULE 8 ═══════════════════════════════ -->
+<script type="text/babel">
+const WFO_STEPS=[
+  {key:'positive',title:'Позитивный результат',q:'Чего именно вы хотите в ваших отношениях? (формулируйте «К», а не «ОТ»)',ph:'«Я хочу, чтобы мы...» вместо «Я не хочу, чтобы...»'},
+  {key:'evidence',title:'Конкретные доказательства',q:'Как вы узнаете, что достигли этого? Что увидите, услышите, почувствуете?',ph:'Когда мы достигнем цели, я увижу/услышу/почувствую...'},
+  {key:'context',title:'Контекст и условия',q:'Где, когда, с кем? При каких условиях вы хотите этого?',ph:'Это важно в ситуациях, когда...'},
+  {key:'resources',title:'Ресурсы',q:'Что у вас уже есть? Какие качества, опыт, поддержка помогут?',ph:'Я уже умею / имею / знаю...'},
+  {key:'ecology',title:'Экологическая проверка',q:'Как это повлияет на другие сферы вашей жизни и на партнёра?',ph:'Достижение этой цели также...'},
+];
+
+function Module8({onComplete}){
+  const {useState,useEffect}=React;
+  const load=()=>{try{return JSON.parse(localStorage.getItem('ggl_m8')||'null');}catch{return null;}};
+  const [step,setStep]=useState(0);
+  const [answers,setAnswers]=useState(load()?.answers||{});
+  const [done,setDone]=useState(false);
+  const [milestones,setMilestones]=useState(load()?.milestones||['','','']);
+  const [aiInsight,setAiInsight]=useState('');
+  const [aiLoad,setAiLoad]=useState(false);
+
+  useEffect(()=>{localStorage.setItem('ggl_m8',JSON.stringify({answers,milestones}));},[answers,milestones]);
+
+  const cur=WFO_STEPS[step];
+  const setAns=(v)=>setAnswers(a=>({...a,[cur.key]:v}));
+  const next=()=>{if(step<WFO_STEPS.length-1)setStep(s=>s+1);else setDone(true);};
+  const prev=()=>{if(step>0)setStep(s=>s-1);};
+
+  const getInsight=async()=>{
+    setAiLoad(true);
+    const summary=WFO_STEPS.map(s=>`${s.title}: ${answers[s.key]||'—'}`).join('\n');
+    const r=await aiComplete(`Ты коуч по НЛП. Вот Well-Formed Outcome пользователя для отношений:\n${summary}\n\nДай короткий (2-3 предложения) поддерживающий инсайт о силе этого намерения. Тёплый, вдохновляющий тон.`);
+    setAiInsight(r);setAiLoad(false);
+  };
+
+  const filled=Object.values(answers).filter(v=>v&&v.trim()).length;
+
+  return(
+    <Wrap>
+      <Hero num={8} suit="♠" bg="linear-gradient(135deg,#080C1A,#1A2040)" color="#6878C0"
+        title="Осознанная Любовь<br/>— Проектирование Будущего" sub="Переход от реактивного режима к проактивному. Вы создаёте отношения, которые хотите."/>
+
+      <Card>
+        <CardTitle>Конструктор Well-Formed Outcome</CardTitle>
+        {!done?(
+          <>
+            <div style={{display:'flex',gap:4,marginBottom:20}}>
+              {WFO_STEPS.map((_,i)=><div key={i} style={{flex:1,height:4,borderRadius:2,background:i<step?'#3A4A7E':i===step?'#6878C0':'#EDE0D4',transition:'background .3s'}}/>)}
+            </div>
+            <div style={{fontSize:11,fontWeight:700,color:'#6878C0',letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:8}}>Шаг {step+1} из {WFO_STEPS.length}</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:19,color:'#2C1810',fontWeight:700,marginBottom:8}}>{cur.title}</div>
+            <div style={{fontSize:14,color:'#5A4438',lineHeight:1.65,marginBottom:14}}>{cur.q}</div>
+            <textarea value={answers[cur.key]||''} onChange={e=>setAns(e.target.value)}
+              placeholder={cur.ph} rows={4}
+              style={{width:'100%',border:'1.5px solid #C0C8E8',borderRadius:12,padding:'12px 14px',fontSize:14,color:'#2C1810',outline:'none',resize:'none',lineHeight:1.6,marginBottom:16}}/>
+            <div style={{display:'flex',gap:10}}>
+              {step>0&&<button onClick={prev} style={{flex:1,padding:12,borderRadius:10,border:'1.5px solid #EDE0D4',background:'transparent',color:'#7A5C4A',fontSize:14,cursor:'pointer'}}>← Назад</button>}
+              <button onClick={next} disabled={!answers[cur.key]?.trim()} style={{flex:2,padding:12,borderRadius:10,border:'none',background:answers[cur.key]?.trim()?'#3A4A7E':'#C0C8D0',color:'#fff',fontSize:14,fontWeight:600,cursor:answers[cur.key]?.trim()?'pointer':'default'}}>
+                {step<WFO_STEPS.length-1?'Далее →':'Завершить →'}
+              </button>
+            </div>
+          </>
+        ):(
+          <div className="fade-up">
+            <div style={{background:'linear-gradient(135deg,#F0F2F8,#E8EAF6)',border:'2px solid #B0B8E0',borderRadius:16,padding:'24px 28px',marginBottom:20}}>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:'#2C1810',fontWeight:700,marginBottom:16}}>Ваш Well-Formed Outcome</div>
+              {WFO_STEPS.map(s=>(
+                <div key={s.key} style={{marginBottom:14}}>
+                  <div style={{fontSize:11,fontWeight:700,color:'#3A4A7E',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:4}}>{s.title}</div>
+                  <div style={{fontSize:14,color:'#3C2818',lineHeight:1.65,padding:'8px 12px',background:'rgba(255,255,255,.6)',borderRadius:8}}>{answers[s.key]||'—'}</div>
+                </div>
+              ))}
+            </div>
+            {!aiInsight
+              ?<button onClick={getInsight} disabled={aiLoad} style={{width:'100%',padding:12,borderRadius:10,border:'none',background:aiLoad?'#C0C8D0':'#3A4A7E',color:'#fff',fontSize:14,fontWeight:600,cursor:aiLoad?'default':'pointer',marginBottom:16}}>
+                {aiLoad?'⏳ Анализирую...':'✨ Получить AI-инсайт по вашему намерению'}
+              </button>
+              :<div style={{background:'#F0F2F8',borderRadius:12,padding:'16px 20px',marginBottom:16,fontSize:14,color:'#3C2818',lineHeight:1.7,fontStyle:'italic'}}>
+                💜 {aiInsight}
+              </div>
+            }
+            <button onClick={()=>{setDone(false);setStep(0);}} style={{padding:'8px 16px',borderRadius:8,border:'1.5px solid #3A4A7E',background:'transparent',color:'#3A4A7E',fontSize:13,cursor:'pointer'}}>↺ Редактировать</button>
+          </div>
+        )}
+      </Card>
+
+      <Card>
+        <CardTitle>Таймлайн: 3 milestone</CardTitle>
+        <Body>Обозначьте три ключевые точки пути к вашей цели:</Body>
+        <div style={{position:'relative',paddingTop:8}}>
+          <div style={{position:'absolute',top:24,left:'12.5%',right:'12.5%',height:2,background:'#EDE0D4',zIndex:0}}/>
+          <div style={{display:'flex',justifyContent:'space-between',position:'relative',zIndex:1}}>
+            {['1 месяц','3 месяца','6 месяцев'].map((label,i)=>(
+              <div key={i} style={{width:'30%',textAlign:'center'}}>
+                <div style={{width:28,height:28,borderRadius:'50%',background:'#3A4A7E',margin:'0 auto 10px',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:12,fontWeight:700}}>{i+1}</div>
+                <div style={{fontSize:11,color:'#6878C0',fontWeight:700,marginBottom:6}}>{label}</div>
+                <textarea value={milestones[i]||''} onChange={e=>{const m=[...milestones];m[i]=e.target.value;setMilestones(m);}}
+                  placeholder="Что изменится..." rows={3}
+                  style={{width:'100%',border:'1.5px solid #C0C8E8',borderRadius:8,padding:'8px 10px',fontSize:12,color:'#2C1810',outline:'none',resize:'none',lineHeight:1.5}}/>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <CardTitle>Ключевые инсайты</CardTitle>
+        <Insight icon="♠" text="Отношения без осознанного направления дрейфуют — не всегда туда, куда вы хотите."/>
+        <Insight icon="🎯" text="WFO: результат должен быть позитивным, конкретным, достижимым и в вашей власти."/>
+        <Insight icon="🗺️" text="Совместная карта будущего создаёт «притяжение» к желаемому."/>
+      </Card>
+
+      <NextBtn label="Модуль 9: Игра Удовольствия →" color="linear-gradient(135deg,#3A4A7E,#5060A0)" shadow="rgba(58,74,126,.3)" onClick={()=>onComplete(8)}/>
+    </Wrap>
+  );
+}
+window.Module8=Module8;
+</script>
+
+<!-- ═══ MODULE 9 ═══════════════════════════════ -->
+<script type="text/babel">
+function Module9({onComplete}){
+  const {useState,useEffect}=React;
+  const load=()=>{try{return JSON.parse(localStorage.getItem('ggl_m9')||'null');}catch{return null;}};
+  const [pleasures,setPleasures]=useState(load()||[]);
+  const [newP,setNewP]=useState('');
+  const [expandId,setExpandId]=useState(null);
+  const [whyMap,setWhyMap]=useState(()=>{try{return JSON.parse(localStorage.getItem('ggl_m9_why')||'{}');}catch{return {};}});
+  const [metaMap,setMetaMap]=useState(()=>{try{return JSON.parse(localStorage.getItem('ggl_m9_meta')||'{}');}catch{return {};}});
+
+  useEffect(()=>{localStorage.setItem('ggl_m9',JSON.stringify(pleasures));},[pleasures]);
+  useEffect(()=>{localStorage.setItem('ggl_m9_why',JSON.stringify(whyMap));},[whyMap]);
+  useEffect(()=>{localStorage.setItem('ggl_m9_meta',JSON.stringify(metaMap));},[metaMap]);
+
+  const add=()=>{if(!newP.trim())return;setPleasures(ps=>[...ps,{id:Date.now(),text:newP.trim()}]);setNewP('');};
+  const del=(id)=>setPleasures(ps=>ps.filter(p=>p.id!==id));
+
+  const examples=['Утренний кофе вдвоём','Прогулки за руку','Смех до слёз','Тихий вечер дома','Спонтанные поцелуи','Совместное приготовление еды'];
+
+  return(
+    <Wrap>
+      <Hero num={9} suit="♥" bg="linear-gradient(135deg,#250810,#4A1020)" color="#E06090"
+        title="Игра Удовольствия" sub="Первичные удовольствия — это ощущения. Мета-удовольствия — это смыслы, которые мы им придаём."/>
+
+      <Card>
+        <CardTitle>Дерево удовольствий</CardTitle>
+        <Body>Добавьте вещи, которые приносят вам радость в отношениях. Затем исследуйте их глубину: почему это важно?</Body>
+
+        <div style={{display:'flex',gap:8,marginBottom:12}}>
+          <input value={newP} onChange={e=>setNewP(e.target.value)} onKeyDown={e=>e.key==='Enter'&&add()}
+            placeholder="Что приносит мне радость в наших отношениях..."
+            style={{flex:1,border:'1.5px solid #EDE0D4',borderRadius:10,padding:'10px 12px',fontSize:14,color:'#2C1810',outline:'none'}}/>
+          <button onClick={add} disabled={!newP.trim()} style={{padding:'10px 16px',borderRadius:10,border:'none',background:newP.trim()?'#C03060':'#D0C0C8',color:'#fff',fontSize:14,fontWeight:600,cursor:newP.trim()?'pointer':'default'}}>+</button>
+        </div>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:16}}>
+          {examples.map(e=><button key={e} onClick={()=>setNewP(e)} style={{padding:'4px 10px',borderRadius:20,border:'1px solid #EDE0D4',background:'transparent',color:'#7A5C4A',fontSize:12,cursor:'pointer'}}>{e}</button>)}
+        </div>
+
+        {pleasures.length>0?(
+          <div>
+            {pleasures.map(p=>{
+              const isOpen=expandId===p.id;
+              const why=whyMap[p.id]||'';
+              const meta=metaMap[p.id]||'';
+              const complete=why&&meta;
+              return(
+                <div key={p.id} style={{marginBottom:10,border:`2px solid ${complete?'#E090A0':'#EDE0D4'}`,borderRadius:14,overflow:'hidden',transition:'border-color .2s'}}>
+                  <div onClick={()=>setExpandId(isOpen?null:p.id)} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 16px',cursor:'pointer',background:isOpen?'#FFF0F4':'#FFFDF9'}}>
+                    <span style={{fontSize:16}}>{complete?'🌸':'🌱'}</span>
+                    <span style={{flex:1,fontSize:14,color:'#3C2818',fontWeight:500}}>{p.text}</span>
+                    {complete&&<span style={{fontSize:11,color:'#C03060',background:'#FFE0EA',borderRadius:6,padding:'2px 8px'}}>Исследовано</span>}
+                    <button onClick={e=>{e.stopPropagation();del(p.id);}} style={{background:'none',border:'none',color:'#C0B0A0',cursor:'pointer',fontSize:13}}>✕</button>
+                    <span style={{color:'#C03060',fontSize:13}}>{isOpen?'▲':'▼'}</span>
+                  </div>
+                  {isOpen&&(
+                    <div style={{padding:'14px 16px',background:'#FFFBFC',borderTop:'1px solid #F0D0DA'}}>
+                      <div style={{marginBottom:12}}>
+                        <div style={{fontSize:11,fontWeight:700,color:'#C03060',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:6}}>Почему это важно для меня?</div>
+                        <textarea value={why} onChange={e=>setWhyMap(m=>({...m,[p.id]:e.target.value}))}
+                          placeholder="Это важно, потому что..." rows={2}
+                          style={{width:'100%',border:'1.5px solid #F0C0D0',borderRadius:8,padding:'8px 10px',fontSize:13,outline:'none',resize:'none',color:'#2C1810'}}/>
+                      </div>
+                      {why&&(
+                        <div>
+                          <div style={{fontSize:11,fontWeight:700,color:'#A02050',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:6}}>Мета-уровень: что это говорит о твоих ценностях?</div>
+                          <textarea value={meta} onChange={e=>setMetaMap(m=>({...m,[p.id]:e.target.value}))}
+                            placeholder="Для меня это олицетворяет..." rows={2}
+                            style={{width:'100%',border:'1.5px solid #E0A0B8',borderRadius:8,padding:'8px 10px',fontSize:13,outline:'none',resize:'none',color:'#2C1810'}}/>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <div style={{marginTop:16,padding:'14px 18px',background:'#FFF0F4',borderRadius:12,border:'1px solid #F0D0DA'}}>
+              <div style={{fontSize:13,color:'#A02050',lineHeight:1.65}}>
+                🌸 <strong>Паттерн удовольствия:</strong> Когда вы понимаете, что стоит за вашими радостями на мета-уровне — вы видите свои глубинные ценности. Именно они — компас для романтики.
+              </div>
+            </div>
+          </div>
+        ):<div style={{textAlign:'center',padding:32,color:'#A08878',fontSize:14}}>Начните добавлять источники радости ↑</div>}
+      </Card>
+
+      <Card>
+        <CardTitle>Ключевые инсайты</CardTitle>
+        <Insight icon="♥" text="Радость — это навык. Одни и те же события разные люди переживают по-разному."/>
+        <Insight icon="🌸" text="Мета-удовольствие: «Мне приятно, что мне приятно» — двойной уровень усиливает опыт."/>
+        <Insight icon="🌿" text="Де-плежуринг: убрать смысловую «зарядку» с разрушительных привычек — NLP-техника освобождения."/>
+      </Card>
+
+      <NextBtn label="Модуль 10: Здоровый Конфликт →" color="linear-gradient(135deg,#C03060,#E05080)" shadow="rgba(192,48,96,.3)" onClick={()=>onComplete(9)}/>
+    </Wrap>
+  );
+}
+window.Module9=Module9;
+</script>
+
+<!-- ═══ MODULE 10 ═══════════════════════════════ -->
+<script type="text/babel">
+const CONFLICT_STEPS=[
+  {key:'situation',title:'Опишите ситуацию',q:'Что произошло? Факты, без оценок:',ph:'Партнёр сказал/сделал...'},
+  {key:'game',title:'Какая игра играется?',q:'Как называется этот паттерн? Это «игра» с именем:',ph:'Например: «Игра в правоту», «Игра в жертву»...'},
+  {key:'players',title:'Роли игроков',q:'Какие роли принимают участники? (Нападающий/Защищающийся, Родитель/Ребёнок...)',ph:'Я в этой игре...'},
+  {key:'hooks',title:'Крючки',q:'За что именно «цепляет» эта ситуация? Что задевает глубоко?',ph:'Меня цепляет, потому что...'},
+  {key:'frame',title:'Фрейм за конфликтом',q:'Какое убеждение о себе/партнёре/отношениях стоит за этой болью?',ph:'Этот конфликт говорит мне, что...'},
+  {key:'newframe',title:'Новый фрейм',q:'Какой ресурсный фрейм мог бы занять это место?',ph:'Альтернативное убеждение...'},
+];
+
+function Module10({onComplete}){
+  const {useState,useEffect}=React;
+  const load=()=>{try{return JSON.parse(localStorage.getItem('ggl_m10')||'null');}catch{return null;}};
+  const [step,setStep]=useState(0);
+  const [answers,setAnswers]=useState(load()?.answers||{});
+  const [done,setDone]=useState(false);
+  const [aiSuggest,setAiSuggest]=useState('');
+  const [aiLoad,setAiLoad]=useState(false);
+
+  useEffect(()=>{localStorage.setItem('ggl_m10',JSON.stringify({answers}));},[answers]);
+
+  const cur=CONFLICT_STEPS[step];
+  const setAns=v=>setAnswers(a=>({...a,[cur.key]:v}));
+  const next=()=>{if(step<CONFLICT_STEPS.length-1)setStep(s=>s+1);else setDone(true);};
+  const prev=()=>setStep(s=>s-1);
+
+  const getAiNewFrame=async()=>{
+    setAiLoad(true);
+    const r=await aiComplete(`Коуч по НЛП. Помогите найти ресурсный фрейм для конфликтной ситуации.\nСитуация: ${answers.situation}\nСтарый фрейм: ${answers.frame}\nПредложите 1-2 ресурсных альтернативных убеждения. Кратко, тепло.`);
+    setAiSuggest(r);setAiLoad(false);
+    setAnswers(a=>({...a,newframe:r}));
+  };
+
+  return(
+    <Wrap>
+      <Hero num={10} suit="♦" bg="linear-gradient(135deg,#1A0C08,#3A1808)" color="#D07030"
+        title="Здоровый Конфликт" sub="Конфликт неизбежен. Вопрос не «как избежать», а «как драться честно, чтобы оба выиграли»."/>
+
+      <Card>
+        <CardTitle>Правила честного боя</CardTitle>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:10,marginBottom:8}}>
+          {[['⚔️ Атакуй проблему','Не партнёра как человека'],['🎯 Один вопрос за раз','Не «вспоминай все грехи»'],['⏸️ Тайм-аут','Если температура зашкалила — пауза'],['👂 Слушай до конца','Прежде чем отвечать'],['🤝 Ищи win-win','Не победу, а решение']].map(([t,d])=>(
+            <div key={t} style={{background:'#FFF8F4',borderRadius:10,padding:'12px 14px',border:'1px solid #F0D0C0'}}>
+              <div style={{fontSize:13,fontWeight:600,color:'#A04010',marginBottom:4}}>{t}</div>
+              <div style={{fontSize:12,color:'#5A4438'}}>{d}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card>
+        <CardTitle>Трекер конфликта: фреймовый анализ</CardTitle>
+        {!done?(
+          <>
+            <div style={{display:'flex',gap:4,marginBottom:20}}>
+              {CONFLICT_STEPS.map((_,i)=><div key={i} style={{flex:1,height:4,borderRadius:2,background:i<step?'#A04010':i===step?'#D07030':'#EDE0D4',transition:'background .3s'}}/>)}
+            </div>
+            <div style={{fontSize:11,fontWeight:700,color:'#D07030',letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:8}}>
+              Шаг {step+1}: {cur.title}
+            </div>
+            <div style={{fontSize:14,color:'#5A4438',lineHeight:1.65,marginBottom:14}}>{cur.q}</div>
+            <textarea value={answers[cur.key]||''} onChange={e=>setAns(e.target.value)}
+              placeholder={cur.ph} rows={3}
+              style={{width:'100%',border:'1.5px solid #E0C0A0',borderRadius:12,padding:'12px 14px',fontSize:14,color:'#2C1810',outline:'none',resize:'none',marginBottom:12}}/>
+            {step===5&&(
+              <button onClick={getAiNewFrame} disabled={aiLoad||!answers.frame} style={{width:'100%',padding:11,borderRadius:10,border:'none',background:aiLoad||!answers.frame?'#D0C0B0':'#A04010',color:'#fff',fontSize:13,fontWeight:600,cursor:aiLoad||!answers.frame?'default':'pointer',marginBottom:12}}>
+                {aiLoad?'⏳ Генерирую...':'✨ AI: предложить ресурсный фрейм'}
+              </button>
+            )}
+            <div style={{display:'flex',gap:10}}>
+              {step>0&&<button onClick={prev} style={{flex:1,padding:12,borderRadius:10,border:'1.5px solid #EDE0D4',background:'transparent',color:'#7A5C4A',fontSize:14,cursor:'pointer'}}>← Назад</button>}
+              <button onClick={next} disabled={!answers[cur.key]?.trim()} style={{flex:2,padding:12,borderRadius:10,border:'none',background:answers[cur.key]?.trim()?'#A04010':'#D0C0B0',color:'#fff',fontSize:14,fontWeight:600,cursor:answers[cur.key]?.trim()?'pointer':'default'}}>
+                {step<CONFLICT_STEPS.length-1?'Далее →':'Завершить анализ →'}
+              </button>
+            </div>
+          </>
+        ):(
+          <div className="fade-up">
+            <div style={{background:'linear-gradient(135deg,#FFF8F4,#FEEDE0)',border:'2px solid #D07030',borderRadius:16,padding:'24px 28px',marginBottom:16}}>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:'#2C1810',fontWeight:700,marginBottom:16}}>Анализ конфликта завершён</div>
+              {CONFLICT_STEPS.map(s=>(
+                <div key={s.key} style={{marginBottom:12}}>
+                  <div style={{fontSize:11,fontWeight:700,color:'#A04010',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:4}}>{s.title}</div>
+                  <div style={{fontSize:13,color:'#3C2818',lineHeight:1.6,padding:'8px 12px',background:'rgba(255,255,255,.6)',borderRadius:8}}>{answers[s.key]||'—'}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{display:'flex',gap:10}}>
+              <button onClick={()=>{setDone(false);setStep(0);setAnswers({});}} style={{flex:1,padding:11,borderRadius:10,border:'1.5px solid #A04010',background:'transparent',color:'#A04010',fontSize:13,cursor:'pointer'}}>↺ Новый конфликт</button>
+              <button onClick={()=>{setDone(false);setStep(0);}} style={{flex:1,padding:11,borderRadius:10,border:'none',background:'#A04010',color:'#fff',fontSize:13,fontWeight:600,cursor:'pointer'}}>✏️ Редактировать</button>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      <Card>
+        <CardTitle>Ключевые инсайты</CardTitle>
+        <Insight icon="♦" text="Конфликт = различие + важность. Ни одно из них не плохо."/>
+        <Insight icon="🔥" text="Мелкие обиды — это инвестиции в будущий взрыв. Обрабатывай их сразу."/>
+        <Insight icon="🌊" text="«Эмоции — это просто эмоции»: они дают информацию, но не определяют истину."/>
+      </Card>
+
+      <NextBtn label="Модуль 11: Исцеление Любви →" color="linear-gradient(135deg,#A04010,#C06030)" shadow="rgba(160,64,16,.3)" onClick={()=>onComplete(10)}/>
+    </Wrap>
+  );
+}
+window.Module10=Module10;
+</script>
+
+<!-- ═══ MODULE 11 ═══════════════════════════════ -->
+<script type="text/babel">
+const THRESHOLD_LEVELS=[
+  {v:0,label:'Открыт',desc:'Полная готовность к близости. Сердце открыто.',color:'#2D7A50'},
+  {v:2,label:'Лёгкая усталость',desc:'Небольшое раздражение. Есть минорные разочарования.',color:'#5A9A60'},
+  {v:4,label:'Накопление',desc:'Паттерн повторяется. Начинаете дистанцироваться.',color:'#C8842A'},
+  {v:6,label:'Защитный режим',desc:'Эмоциональная дистанция. Меньше открытости, больше контроля.',color:'#D06040'},
+  {v:8,label:'На грани',desc:'Серьёзное рассмотрение ухода. Большинство чувств заблокированы.',color:'#C03020'},
+  {v:10,label:'Порог',desc:'Внутренний уход завершён. Внешнее — вопрос времени.',color:'#8A1010'},
+];
+const NEUTRAL_STEPS=[
+  {title:'Признание',desc:'Скажите себе честно: «Я достиг(ла) уровня ___ на шкале порога».',action:'Запишите текущий уровень без осуждения'},
+  {title:'Понять фрейм',desc:'Какое убеждение создало накопление? Что вы рассказывали себе об этих ситуациях?',action:'Найдите главный фрейм за болью'},
+  {title:'Поискать намерение',desc:'Что ваша закрытость пытается защитить? Какая ценность стоит за болью?',action:'«Я закрываюсь, чтобы защитить...»'},
+  {title:'Выбрать новый фрейм',desc:'Можно ли взглянуть на ситуацию иначе? Что изменится, если принять альтернативный фрейм?',action:'Сформулируйте новое убеждение'},
+];
+
+function Module11({onComplete}){
+  const {useState,useEffect}=React;
+  const [thLevel,setThLevel]=useState(()=>parseInt(localStorage.getItem('ggl_m11_level')||'3'));
+  const [neutStep,setNeutStep]=useState(0);
+  const [neutAnswers,setNeutAnswers]=useState(()=>{try{return JSON.parse(localStorage.getItem('ggl_m11_neut')||'{}');}catch{return {};}});
+  const [done,setDone]=useState(false);
+  const [forgText,setForgText]=useState(localStorage.getItem('ggl_m11_forg')||'');
+  const [aiInsight,setAiInsight]=useState('');
+  const [aiLoad,setAiLoad]=useState(false);
+
+  useEffect(()=>{localStorage.setItem('ggl_m11_level',thLevel);},[thLevel]);
+  useEffect(()=>{localStorage.setItem('ggl_m11_neut',JSON.stringify(neutAnswers));},[neutAnswers]);
+  useEffect(()=>{localStorage.setItem('ggl_m11_forg',forgText);},[forgText]);
+
+  const curLevel=THRESHOLD_LEVELS.reduce((p,c)=>Math.abs(c.v-thLevel)<Math.abs(p.v-thLevel)?c:p);
+  const curNeut=NEUTRAL_STEPS[neutStep];
+
+  const getAiForg=async()=>{
+    setAiLoad(true);
+    const r=await aiComplete(`Коуч по НЛП. Пользователь на уровне ${thLevel}/10 порога. Написал о прощении: "${forgText}". Дай краткий (2 предложения) поддерживающий инсайт о прощении как личном освобождении. Тёплый тон.`);
+    setAiInsight(r);setAiLoad(false);
+  };
+
+  return(
+    <Wrap>
+      <Hero num={11} suit="♣" bg="linear-gradient(135deg,#081408,#102818)" color="#5A9A60"
+        title="Исцеление<br/>Раненой Любви" sub="Порог — это момент, когда человек внутренне закрывается. Научитесь его узнавать и нейтрализовать."/>
+
+      <Card>
+        <CardTitle>Ваш текущий уровень порога</CardTitle>
+        <Body>Где вы сейчас в своих отношениях?</Body>
+        <input type="range" min={0} max={10} step={1} value={thLevel} onChange={e=>setThLevel(+e.target.value)}
+          style={{width:'100%',marginBottom:16,color:curLevel.color}}/>
+        <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#A08878',marginBottom:20}}>
+          {THRESHOLD_LEVELS.map(l=><span key={l.v} style={{color:l.v===Math.round(thLevel/2)*2?curLevel.color:'#A08878',fontWeight:l.v===Math.round(thLevel/2)*2?700:400}}>{l.v}</span>)}
+        </div>
+        <div style={{background:`${curLevel.color}18`,border:`2px solid ${curLevel.color}40`,borderRadius:14,padding:'18px 22px',transition:'all .4s'}}>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:'#2C1810',fontWeight:700,marginBottom:6}}>{curLevel.label}</div>
+          <div style={{fontSize:14,color:'#5A4438',lineHeight:1.65}}>{curLevel.desc}</div>
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:8,marginTop:16}}>
+          {THRESHOLD_LEVELS.map(l=>(
+            <div key={l.v} style={{padding:'10px 14px',borderRadius:10,background:`${l.color}12`,border:`1px solid ${l.color}30`,opacity:Math.abs(l.v-thLevel)>2?.5:1,transition:'opacity .3s'}}>
+              <div style={{fontSize:12,fontWeight:700,color:l.color,marginBottom:3}}>{l.v} — {l.label}</div>
+              <div style={{fontSize:11,color:'#5A4438',lineHeight:1.5}}>{l.desc}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card>
+        <CardTitle>Нейтрализатор порога</CardTitle>
+        {!done?(
+          <>
+            <div style={{display:'flex',gap:4,marginBottom:16}}>
+              {NEUTRAL_STEPS.map((_,i)=><div key={i} style={{flex:1,height:4,borderRadius:2,background:i<neutStep?'#2A5A3A':i===neutStep?'#5A9A60':'#EDE0D4',transition:'background .3s'}}/>)}
+            </div>
+            <div style={{fontSize:11,fontWeight:700,color:'#5A9A60',letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:8}}>Шаг {neutStep+1}: {curNeut.title}</div>
+            <div style={{fontSize:14,color:'#5A4438',lineHeight:1.65,marginBottom:6}}>{curNeut.desc}</div>
+            <div style={{fontSize:12,color:'#2A5A3A',background:'#F0F8F2',borderRadius:8,padding:'8px 12px',marginBottom:14}}>
+              <strong>Задание:</strong> {curNeut.action}
+            </div>
+            <textarea value={neutAnswers[neutStep]||''} onChange={e=>setNeutAnswers(a=>({...a,[neutStep]:e.target.value}))}
+              placeholder="Ваш ответ..." rows={3}
+              style={{width:'100%',border:'1.5px solid #A0C8A8',borderRadius:12,padding:'10px 14px',fontSize:14,color:'#2C1810',outline:'none',resize:'none',marginBottom:12}}/>
+            <div style={{display:'flex',gap:10}}>
+              {neutStep>0&&<button onClick={()=>setNeutStep(s=>s-1)} style={{flex:1,padding:12,borderRadius:10,border:'1.5px solid #EDE0D4',background:'transparent',color:'#7A5C4A',fontSize:14,cursor:'pointer'}}>← Назад</button>}
+              <button onClick={()=>{if(neutStep<NEUTRAL_STEPS.length-1)setNeutStep(s=>s+1);else setDone(true);}}
+                disabled={!neutAnswers[neutStep]?.trim()} style={{flex:2,padding:12,borderRadius:10,border:'none',background:neutAnswers[neutStep]?.trim()?'#2A5A3A':'#C0D0C8',color:'#fff',fontSize:14,fontWeight:600,cursor:neutAnswers[neutStep]?.trim()?'pointer':'default'}}>
+                {neutStep<NEUTRAL_STEPS.length-1?'Следующий шаг →':'Завершить процесс →'}
+              </button>
+            </div>
+          </>
+        ):(
+          <div className="fade-up">
+            <div style={{background:'#F0F8F2',borderRadius:14,padding:'20px 24px',marginBottom:16}}>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:'#2C1810',fontWeight:700,marginBottom:12}}>✓ Процесс завершён</div>
+              {NEUTRAL_STEPS.map((s,i)=>(
+                <div key={i} style={{marginBottom:10}}>
+                  <div style={{fontSize:11,fontWeight:700,color:'#2A5A3A',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>{s.title}</div>
+                  <div style={{fontSize:13,color:'#3C2818',lineHeight:1.6,background:'rgba(255,255,255,.7)',borderRadius:8,padding:'8px 10px'}}>{neutAnswers[i]||'—'}</div>
+                </div>
+              ))}
+            </div>
+            <button onClick={()=>{setDone(false);setNeutStep(0);}} style={{padding:'8px 16px',borderRadius:8,border:'1.5px solid #2A5A3A',background:'transparent',color:'#2A5A3A',fontSize:13,cursor:'pointer'}}>↺ Пройти снова</button>
+          </div>
+        )}
+      </Card>
+
+      <Card>
+        <CardTitle>Прощение как освобождение</CardTitle>
+        <Body>Прощение — это не про другого. Это про освобождение себя от груза. Запишите, что вам нужно отпустить:</Body>
+        <textarea value={forgText} onChange={e=>setForgText(e.target.value)}
+          placeholder="Мне нужно отпустить..." rows={3}
+          style={{width:'100%',border:'1.5px solid #A0C8A8',borderRadius:10,padding:'10px 12px',fontSize:14,color:'#2C1810',outline:'none',resize:'none',marginBottom:12}}/>
+        {forgText.trim()&&(
+          <button onClick={getAiForg} disabled={aiLoad} style={{padding:'10px 20px',borderRadius:10,border:'none',background:aiLoad?'#C0D0C8':'#2A5A3A',color:'#fff',fontSize:13,fontWeight:600,cursor:aiLoad?'default':'pointer',marginBottom:12}}>
+            {aiLoad?'⏳...':'✨ Получить инсайт (AI)'}
+          </button>
+        )}
+        {aiInsight&&<div style={{fontSize:14,color:'#2A4030',lineHeight:1.7,background:'#F0F8F2',borderRadius:10,padding:'14px 16px',fontStyle:'italic'}}>💚 {aiInsight}</div>}
+      </Card>
+
+      <Card>
+        <CardTitle>Ключевые инсайты</CardTitle>
+        <Insight icon="♣" text="Порог — это не слабость, это сигнал. Тело говорит: «Мне нужно что-то изменить»."/>
+        <Insight icon="💚" text="Прощение — это процесс, не событие. Не нужно торопиться. Главное — намерение."/>
+        <Insight icon="🌱" text="Нейтрализация порога: сначала признать, потом понять фрейм, потом выбрать новый."/>
+      </Card>
+
+      <NextBtn label="Модуль 12: Со-Творение →" color="linear-gradient(135deg,#2A5A3A,#3A7A50)" shadow="rgba(42,90,58,.3)" onClick={()=>onComplete(11)}/>
+    </Wrap>
+  );
+}
+window.Module11=Module11;
+</script>
+
+<!-- ═══ MODULE 12 ═══════════════════════════════ -->
+<script type="text/babel">
+const ALL_GAMES=[
+  {id:'awareness',module:1,title:'Игра Осознанности',desc:'Замечаю свои паттерны и фреймы'},
+  {id:'romance',module:2,title:'Игра Романтики',desc:'Целенаправленно создаю романтические моменты'},
+  {id:'investment',module:3,title:'Игра Инвестиций',desc:'Каждый день делаю вклады в эмоциональный банк'},
+  {id:'disclosure',module:4,title:'Игра Самораскрытия',desc:'Открываюсь на более глубоких уровнях'},
+  {id:'language',module:5,title:'Игра Языков Любви',desc:'Говорю на языке любви партнёра'},
+  {id:'presence',module:6,title:'Игра Присутствия',desc:'Практикую аттентивное слушание'},
+  {id:'sync',module:7,title:'Игра Синхронизации',desc:'Принимаю различия в мета-программах'},
+  {id:'design',module:8,title:'Игра Проектирования',desc:'Строю осознанное совместное будущее'},
+  {id:'pleasure',module:9,title:'Игра Удовольствия',desc:'Усиливаю радость через осознание мета-уровня'},
+  {id:'conflict',module:10,title:'Игра Честной Борьбы',desc:'Разрешаю конфликты по правилам честного боя'},
+  {id:'healing',module:11,title:'Игра Исцеления',desc:'Нейтрализую пороги и практикую прощение'},
+  {id:'cocreation',module:12,title:'Игра Со-Творения',desc:'Создаю взаимозависимость из силы, не из страха'},
+];
+
+function Module12({onComplete,completedModules}){
+  const {useState,useEffect}=React;
+  const load=()=>{try{return JSON.parse(localStorage.getItem('ggl_m12')||'null');}catch{return null;}};
+  const [selected,setSelected]=useState(load()?.selected||[]);
+  const [plan,setPlan]=useState(load()?.plan||'');
+  const [aiLoad,setAiLoad]=useState(false);
+
+  useEffect(()=>{localStorage.setItem('ggl_m12',JSON.stringify({selected,plan}));},[selected,plan]);
+
+  const toggle=(id)=>{
+    setSelected(s=>s.includes(id)?s.filter(i=>i!==id):s.length<5?[...s,id]:s);
+    setPlan('');
+  };
+
+  const generatePlan=async()=>{
+    setAiLoad(true);
+    const games=ALL_GAMES.filter(g=>selected.includes(g.id)).map(g=>`"${g.title}": ${g.desc}`).join('\n');
+    const r=await aiComplete(`Ты коуч по нейро-семантике. Пользователь выбрал 5 «игр великого любовника» для практики на этой неделе:\n${games}\n\nСоздай персональный план на неделю (7 дней). Для каждого дня: 1-2 конкретных действия. Тёплый, вдохновляющий тон. Формат: "Понедельник: ...", и т.д.`);
+    setPlan(r);setAiLoad(false);
+  };
+
+  const completedCount=completedModules?.length||0;
+
+  return(
+    <Wrap>
+      <Hero num={12} suit="♠" bg="linear-gradient(135deg,#100818,#28103A)" color="#9060D0"
+        title="Со-Творение<br/>и Слияние Миров" sub="Финальный модуль. Два целостных человека создают третью реальность — общий мир, богатый смыслом и любовью."/>
+
+      {completedCount>=11&&(
+        <div style={{background:'linear-gradient(135deg,#2C1810,#3A1828)',borderRadius:16,padding:'24px 28px',marginBottom:24,textAlign:'center'}}>
+          <div style={{fontSize:32,marginBottom:8}}>🎉</div>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,color:'#F5EDE0',fontWeight:700,marginBottom:8}}>Вы прошли весь курс!</div>
+          <div style={{fontSize:14,color:'#A09080',lineHeight:1.7}}>12 модулей · {completedCount} завершено · Вы — Великий Любовник</div>
+        </div>
+      )}
+
+      <Card>
+        <CardTitle>Взаимозависимость vs Зависимость</CardTitle>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:8}}>
+          {[['😰 Зависимость','«Я не могу жить без тебя»','Из страха и пустоты','#C05A3A','#FFF4F0'],
+            ['🌟 Взаимозависимость','«Я выбираю тебя»','Из силы и полноты','#2D5240','#F0F8F4'],
+            ['😶 Независимость','«Мне никто не нужен»','Из защиты и страха','#8B6914','#FFF8EE']
+          ].map(([t,q,d,c,bg])=>(
+            <div key={t} style={{background:bg,borderRadius:12,padding:'14px 16px',border:`1px solid ${c}30`,textAlign:'center'}}>
+              <div style={{fontSize:13,fontWeight:700,color:c,marginBottom:6}}>{t}</div>
+              <div style={{fontSize:12,color:'#5A4438',marginBottom:4,fontStyle:'italic'}}>«{q}»</div>
+              <div style={{fontSize:11,color:'#A08878'}}>{d}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card>
+        <CardTitle>Выберите 5 игр для вашего плана</CardTitle>
+        <Body>Какие игры вы хотите внедрить на этой неделе? Выберите ровно 5:</Body>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:10,marginBottom:20}}>
+          {ALL_GAMES.map(g=>{
+            const isSelected=selected.includes(g.id);
+            const mod=ALL_MODULES.find(m=>m.id===g.module);
+            return(
+              <div key={g.id} onClick={()=>toggle(g.id)} style={{
+                padding:'14px 16px',borderRadius:12,cursor:'pointer',
+                border:`2px solid ${isSelected?mod?.color||'#C8842A':'#EDE0D4'}`,
+                background:isSelected?`${mod?.color||'#C8842A'}12`:'#FFFDF9',
+                transition:'all .2s',
+                opacity:!isSelected&&selected.length>=5?0.5:1,
+              }}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                  <span style={{fontSize:16,color:mod?.color||'#C8842A'}}>{mod?.suit}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:isSelected?mod?.color||'#C8842A':'#2C1810'}}>{g.title}</span>
+                  {isSelected&&<span style={{marginLeft:'auto',color:mod?.color||'#C8842A',fontSize:16}}>✓</span>}
+                </div>
+                <div style={{fontSize:12,color:'#7A5C4A',lineHeight:1.5}}>{g.desc}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{textAlign:'center',marginBottom:16}}>
+          <span style={{fontSize:14,color:'#7A5C4A'}}>Выбрано: </span>
+          <span style={{fontSize:16,fontWeight:700,color:'#4A2A6A'}}>{selected.length}/5</span>
+        </div>
+
+        {selected.length===5&&(
+          <button onClick={generatePlan} disabled={aiLoad} style={{
+            width:'100%',padding:14,borderRadius:12,border:'none',
+            background:aiLoad?'#C0B8CC':'linear-gradient(135deg,#4A2A6A,#6A40A0)',
+            color:'#fff',fontSize:15,fontWeight:600,cursor:aiLoad?'default':'pointer',marginBottom:16,
+          }}>
+            {aiLoad?'⏳ Создаю ваш план...':'✨ Создать персональный план Великого Любовника'}
+          </button>
+        )}
+
+        {plan&&(
+          <div className="fade-up" style={{background:'linear-gradient(135deg,#F8F0FF,#EEE4F8)',border:'2px solid #C0A8E0',borderRadius:16,padding:'24px 28px'}}>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:'#2C1810',fontWeight:700,marginBottom:16}}>
+              💜 Ваш персональный план
+            </div>
+            <div style={{fontSize:14,color:'#3C2848',lineHeight:1.85,whiteSpace:'pre-wrap'}}>{plan}</div>
+          </div>
+        )}
+      </Card>
+
+      <Card>
+        <CardTitle>Ключевые инсайты</CardTitle>
+        <Insight icon="♠" text="Два целостных человека создают богатство. Двое неполных — взаимозависимость из страха."/>
+        <Insight icon="💜" text="Swish: замените образ «слабого Я» на образ «ресурсного Я» — резко, быстро, с интенсивностью."/>
+        <Insight icon="🌟" text="Ваш персональный план — это не список задач. Это выбор игр, которые вы хотите играть."/>
+      </Card>
+
+      <div style={{background:'linear-gradient(135deg,#2C1810,#1A0E20)',borderRadius:16,padding:'36px',textAlign:'center',marginTop:16}}>
+        <div style={{fontSize:40,marginBottom:12}}>♠♥♦♣</div>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,color:'#F5EDE0',fontWeight:700,marginBottom:10}}>Вы — Великий Любовник</div>
+        <div style={{fontSize:14,color:'#A09080',lineHeight:1.8,maxWidth:460,margin:'0 auto 20px'}}>
+          Теперь у вас есть карта. Инструменты. Понимание. Остальное — ежедневная практика выбора игр, которые строят любовь.
+        </div>
+        <button onClick={()=>onComplete(12)} style={{padding:'14px 32px',borderRadius:12,border:'none',background:'linear-gradient(135deg,#C05A3A,#C8842A)',color:'#fff',fontSize:15,fontWeight:600,cursor:'pointer',boxShadow:'0 4px 20px rgba(200,132,42,.4)'}}>
+          ✓ Завершить курс
+        </button>
+      </div>
+    </Wrap>
+  );
+}
+window.Module12=Module12;
+</script>
+
+<!-- ═══ APP SHELL ═══════════════════════════════ -->
+<script type="text/babel">
+function Sidebar({current,completed,onNavigate}){
+  const pct=Math.round((completed.length/ALL_MODULES.length)*100);
+  return(
+    <div style={{width:272,minWidth:272,background:'#1E1209',display:'flex',flexDirection:'column',height:'100vh',position:'sticky',top:0,overflowY:'auto',flexShrink:0}}>
+      <div style={{padding:'28px 22px 20px',borderBottom:'1px solid rgba(255,255,255,.08)'}}>
+        <div style={{fontFamily:"'Playfair Display',serif",color:'#F0E6D3',fontSize:17,fontWeight:700,lineHeight:1.3,marginBottom:4}}>Игры Великих<br/>Любовников</div>
+        <div style={{color:'#8A7060',fontSize:11,letterSpacing:'0.12em',textTransform:'uppercase'}}>Курс-тренинг · 12 модулей</div>
+      </div>
+      <div style={{padding:'12px 22px 14px',borderBottom:'1px solid rgba(255,255,255,.06)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#8A7060',marginBottom:7,letterSpacing:'0.08em',textTransform:'uppercase'}}>
+          <span>Прогресс</span><span style={{color:'#C8842A',fontWeight:700}}>{pct}%</span>
+        </div>
+        <div style={{height:4,background:'rgba(255,255,255,.1)',borderRadius:2,overflow:'hidden'}}>
+          <div style={{height:'100%',background:'linear-gradient(90deg,#C8842A,#C05A3A)',borderRadius:2,width:`${pct}%`,transition:'width .6s ease'}}/>
+        </div>
+      </div>
+      <ul style={{flex:1,padding:'8px 10px',listStyle:'none',margin:0}}>
+        {ALL_MODULES.map(mod=>{
+          const isActive=mod.id===current;
+          const isDone=completed.includes(mod.id);
+          return(
+            <li key={mod.id} onClick={()=>onNavigate(mod.id)}
+              style={{display:'flex',alignItems:'center',gap:10,padding:'9px 10px',borderRadius:10,cursor:'pointer',transition:'all .2s',marginBottom:1,
+                background:isActive?'rgba(200,132,42,.18)':'transparent',opacity:isDone&&!isActive?.75:1}}>
+              <div style={{width:30,height:30,borderRadius:8,background:isActive?mod.color:'rgba(255,255,255,.06)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,flexShrink:0,position:'relative'}}>
+                <span style={{color:isActive?'#fff':mod.color}}>{mod.suit}</span>
+                <span style={{position:'absolute',bottom:-1,right:-1,background:'#1E1209',borderRadius:3,fontSize:7,color:'#6A5A4A',padding:'0 2px',fontFamily:'monospace'}}>{mod.id}</span>
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:12,fontWeight:500,color:isActive?'#F0E6D3':'#A09080',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{mod.title}</div>
+                <div style={{fontSize:11,color:'#5A4A3A',marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{mod.sub}</div>
+              </div>
+              {isDone&&<span style={{color:'#C8842A',fontSize:12,flexShrink:0}}>✓</span>}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+const MODULE_COMPONENTS={1:window.Module1,2:window.Module2,3:window.Module3,4:window.Module4,5:window.Module5,6:window.Module6,7:window.Module7,8:window.Module8,9:window.Module9,10:window.Module10,11:window.Module11,12:window.Module12};
+
+function App(){
+  const [current,setCurrent]=useState(()=>parseInt(localStorage.getItem('ggl_cur')||'1'));
+  const [completed,setCompleted]=useState(()=>{try{return JSON.parse(localStorage.getItem('ggl_done')||'[]');}catch{return [];}});
+  const [mobileSidebar,setMobileSidebar]=useState(false);
+
+  useEffect(()=>{localStorage.setItem('ggl_cur',current);},[current]);
+  useEffect(()=>{localStorage.setItem('ggl_done',JSON.stringify(completed));},[completed]);
+
+  const handleComplete=(id)=>{
+    setCompleted(p=>p.includes(id)?p:[...p,id]);
+    if(id<12)setTimeout(()=>setCurrent(id+1),400);
+  };
+  const navigate=(id)=>{setCurrent(id);setMobileSidebar(false);};
+
+  const ModComp=MODULE_COMPONENTS[current];
+
+  return(
+    <div style={{fontFamily:"'DM Sans',sans-serif",background:'#FAF6F0',minHeight:'100vh',display:'flex',color:'#2C1810'}}>
+      <style>{`
+        @media(max-width:768px){.mod-wrap{padding:24px 16px 60px!important;}}
+        input,textarea,button{font-family:'DM Sans',sans-serif;}
+      `}</style>
+
+      {/* Mobile header */}
+      <div className="mobile-bar" style={{display:'none',position:'fixed',top:0,left:0,right:0,background:'#1E1209',padding:'12px 16px',alignItems:'center',gap:12,zIndex:100,height:56}}>
+        <button onClick={()=>setMobileSidebar(v=>!v)} style={{background:'none',border:'none',color:'#F0E6D3',fontSize:20,cursor:'pointer',padding:4}}>☰</button>
+        <span style={{fontFamily:"'Playfair Display',serif",color:'#F0E6D3',fontSize:14}}>Игры Великих Любовников</span>
+      </div>
+
+      {/* Mobile overlay */}
+      {mobileSidebar&&<div onClick={()=>setMobileSidebar(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:99}}/>}
+
+      {/* Sidebar desktop */}
+      <div className="sidebar-wrap" style={{display:'flex'}}>
+        <Sidebar current={current} completed={completed} onNavigate={navigate}/>
+      </div>
+
+      {/* Sidebar mobile */}
+      {mobileSidebar&&(
+        <div style={{position:'fixed',top:0,left:0,bottom:0,zIndex:200}}>
+          <Sidebar current={current} completed={completed} onNavigate={navigate}/>
+        </div>
+      )}
+
+      {/* Main */}
+      <div style={{flex:1,overflowY:'auto',minHeight:'100vh'}}>
+        {ModComp
+          ?<ModComp moduleId={current} onComplete={handleComplete} onNavigate={navigate} completedModules={completed}/>
+          :<div style={{padding:40,textAlign:'center',color:'#A08878'}}>Модуль не найден</div>
+        }
+      </div>
+    </div>
+  );
+}
+
+const root=ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App/>);
+</script>
+</body>
+</html>
